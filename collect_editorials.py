@@ -232,6 +232,8 @@ def paragraph_texts(node, min_length=30, excluded_ancestors=None):
         text = normalize_text(paragraph.get_text(" ", strip=True))
         if compact_length(text) < min_length:
             continue
+        if is_ui_chrome(text):
+            continue
         excluded = False
         for ancestor in paragraph.parents:
             if not getattr(ancestor, "name", None):
@@ -300,8 +302,16 @@ def extract_outlet_selector(page, domain):
     return clean_node(node, ["figure", "script", "style", ".ad", ".ad-txt-picbtm"])
 
 
+def drop_chrome_containers(soup):
+    for node in soup.find_all(["section", "div", "p", "ul", "aside"]):
+        marker = " ".join([node.get("id") or "", " ".join(node.get("class") or [])]).lower()
+        if any(hint in marker for hint in CHROME_CONTAINER_HINTS):
+            node.decompose()
+    return soup
+
+
 def extract_paragraph_cluster(page):
-    soup = BeautifulSoup(page, "lxml")
+    soup = drop_chrome_containers(BeautifulSoup(page, "lxml"))
     excluded = ["footer", "header", "nav", "rank", "card", "swiper", "recommend",
                 "related", "policy-box", "subscribe"]
     groups = {}
@@ -325,9 +335,102 @@ def extract_paragraph_cluster(page):
     return candidates[0]
 
 
+
+# ---------------------------------------------------------------- 본문 아님(UI 크롬) 제거
+# 기사 본문이 아니라 기사 페이지의 조작 버튼·안내 문구. 어떤 경로로 딸려 들어와도 지운다.
+UI_CHROME_PATTERNS = [
+    r"(?<![가-힣])인쇄(?:하기)?(?![가-힣])",
+    r"(?<![가-힣])메일(?:로\s*보내기|보내기)?(?![가-힣])",
+    r"페이스북\s*(?:공유|로그인)",
+    r"트위터\s*(?:공유|로그인)",
+    r"(?:url|URL|링크|카카오톡|카카오|밴드|네이버)\s*(?:공유|복사|보내기)",
+    r"(?<![가-힣])공유하기(?![가-힣])",
+    r"스크랩(?:하기)?",
+    r"글씨\s*크기\s*선택",
+    r"가장\s*작은\s*크기\s*글자",
+    r"한\s*단계\s*작은\s*크기\s*글자",
+    r"기본\s*크기\s*글자",
+    r"한\s*단계\s*큰\s*크기\s*글자",
+    r"가장\s*큰\s*크기\s*글자",
+    r"글자\s*크기\s*(?:조절|변경|확대|축소)",
+    r"구글\s*선호\s*매체\s*등록",
+    r"선호\s*매체\s*(?:등록|해제)",
+    r"구글\s*뉴스(?:에서\s*보기)?",
+    r"관련\s*이슈",
+    r"입력\s*:\s*\d{4}-\d{2}-\d{2}\s*\d{2}:\d{2}",
+    r"수정\s*:\s*\d{4}-\d{2}-\d{2}\s*\d{2}:\d{2}",
+    r"(?<![가-힣])댓글\s*(?:\d+)?\s*(?:보기|쓰기|달기)?(?![가-힣])",
+    r"(?<![가-힣])추천\s*\d*(?![가-힣])",
+    r"반응\s*\d+",
+    r"목록으로|기사\s*목록",
+    r"이전\s*기사|다음\s*기사",
+    r"많이\s*본\s*뉴스",
+    r"이\s*기사를\s*추천합니다",
+    r"구독(?:하기|신청)",
+    r"무단\s*전재[^.]{0,20}금지",
+]
+UI_CHROME_RE = re.compile("|".join(f"(?:{p})" for p in UI_CHROME_PATTERNS), re.I)
+CHROME_LEFT_MAX = 8           # 크롬 문구를 걷어낸 뒤 남는 글자가 이보다 적으면 본문이 아니다
+CHROME_MIN_MARKS = 2          # 크롬 표시가 2개 이상이면 문장 단위로도 버린다
+
+
+def chrome_marks(text):
+    return len(UI_CHROME_RE.findall(text or ""))
+
+
+def _chrome_leftover(text):
+    leftover = UI_CHROME_RE.sub(" ", text or "")
+    leftover = re.sub(r"[\s\-+|·,./()\[\]<>\"']", "", leftover)
+    return compact_length(leftover)
+
+
+def is_ui_chrome(text):
+    """문장·문단이 본문이 아니라 기사 페이지 버튼/안내문인지 판별.
+
+    크롬 표시가 1개뿐이면('추천' 같은 낱말이 본문에 섞인 경우) 거의 확실한 크롬만 버린다.
+    """
+    if not text:
+        return False
+    marks = chrome_marks(text)
+    if marks == 0:
+        return False
+    leftover = _chrome_leftover(text)
+    if marks >= 2:
+        return leftover <= CHROME_LEFT_MAX
+    return leftover <= 3
+
+
+def strip_ui_chrome(text):
+    """문장 단위로 크롬 문구를 제거하고, 크롬 덩어리 문장은 통째로 버린다."""
+    if not text:
+        return text
+    kept = []
+    for sentence in split_sentences(text):
+        marks = chrome_marks(sentence)
+        if marks == 0:
+            kept.append(sentence)
+            continue
+        leftover = _chrome_leftover(sentence)
+        if (leftover <= CHROME_LEFT_MAX if marks >= 2 else leftover <= 3):
+            continue                      # 통째로 크롬 → 버린다
+        if marks >= 3 and leftover <= 60:
+            # 크롬 덩어리에 본문 한 문장이 붙어 있는 경우만 그 문장만 남긴다
+            cleaned = UI_CHROME_RE.sub(" ", sentence)
+            cleaned = re.sub(r"\s{2,}", " ", cleaned).strip(" ,·-|+")
+            if compact_length(cleaned) >= 12:
+                kept.append(cleaned)
+            continue
+        kept.append(sentence)             # 본문 문장 → 손대지 않는다
+    return re.sub(r"\s{2,}", " ", " ".join(kept)).strip()
+
+
 CAPTION_MARKERS = ["포즈를 취한", "사진기자", "연합뉴스", "로이터", "원본보기", "이미지 확대", "캡션", "자료사진"]
 
 COLUMN_MARKERS = ["겜스파일", "공간과 스타일", "주간스타트업동향", "기자]", "포토", "영상"]
+
+CHROME_CONTAINER_HINTS = ["viewhelp", "conttitle", "share", "sns", "fontsize", "font-size",
+                          "font_size", "print", "byline", "reporter", "articlehead", "newshead",
+                          "preferred-source", "toolbar"]
 
 BOILERPLATE = [
     r"<ⓒ[^>]*>",
@@ -359,6 +462,7 @@ BOILERPLATE = [
 
 def clean_body(text):
     text = normalize_text(text)
+    text = strip_ui_chrome(text)
     for pattern in BOILERPLATE:
         text = re.sub(pattern, " ", text, flags=re.I)
     text = re.sub(r"\([^)]{0,20}(사진|자료사진|연합뉴스|뉴시스|Getty)[^)]{0,20}\)", " ", text)
