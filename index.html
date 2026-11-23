@@ -159,7 +159,7 @@ table.board td.date{width:105px;text-align:center;font-family:var(--num);color:v
 .prompt{font-family:var(--mono);font-weight:600;font-size:17px;line-height:2.1;letter-spacing:.6px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:14px 18px;overflow:hidden;white-space:pre-wrap;word-break:break-all}
 .prompt .shown{color:var(--ink)}
 .prompt .cursor{background:var(--brand);color:#fff;border-radius:2px}
-.prompt .cd{height:100%;display:flex;align-items:center;justify-content:center;font-family:var(--disp);font-size:56px;font-weight:800;color:var(--brand)}
+.prompt .cd{height:100%;display:flex;align-items:center;justify-content:center;font-family:var(--disp);font-size:20px;font-weight:700;color:var(--brand)}
 .prompt .up{color:transparent;text-shadow:0 0 8px rgba(87,76,58,.30);user-select:none}
 .prompt.dimline{opacity:.35}
 .player{display:flex;align-items:center;gap:12px;background:var(--brand-soft);border:1px solid var(--brand-line);border-radius:7px;padding:10px 14px;flex-wrap:wrap}
@@ -188,6 +188,8 @@ table.board td.date{width:105px;text-align:center;font-family:var(--num);color:v
 .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
 .btn:hover{filter:brightness(.97)}
 .btn.ghost{border-color:var(--line);color:var(--ink-soft)}
+button.guarded{opacity:.4;cursor:not-allowed}
+button.guarded:hover{filter:none}
 .stats-row{font-size:12.5px;color:var(--ink-soft);margin-bottom:6px;display:flex;justify-content:flex-end;gap:12px}
 .stats-row b{color:var(--brand);font-family:var(--num)}
 .type-hint{font-size:12px;color:var(--ink-soft)}
@@ -511,12 +513,12 @@ select.inp{font-weight:500}
           <textarea id="typer" spellcheck="false" placeholder="여기를 누르고 바로 속기하세요" aria-label="속기 입력란"></textarea>
         </div>
         <div class="btn-row">
-          <button class="btn primary" onclick="gradeAll()">채점하기</button>
-          <button class="btn ghost" onclick="resetAll()">처음부터</button>
+          <button class="btn primary" onclick="guardRun(_gradeAllInner)">채점하기</button>
+          <button class="btn ghost" onclick="guardRun(resetAll)">처음부터</button>
           <span class="nav-group">
-            <button class="nav-tri" onclick="goPrev()" title="이전 게시글" aria-label="이전 게시글">◀</button>
-            <button class="btn ghost" onclick="showList(event)">목록</button>
-            <button class="nav-tri" onclick="goNext()" title="다음 게시글" aria-label="다음 게시글">▶</button>
+            <button class="nav-tri" onclick="guardRun(goPrev)" title="이전 게시글" aria-label="이전 게시글">◀</button>
+            <button class="btn ghost" onclick="guardRun(()=>showList())">목록</button>
+            <button class="nav-tri" onclick="guardRun(goNext)" title="다음 게시글" aria-label="다음 게시글">▶</button>
           </span>
         </div>
         <div class="grading" id="grading">
@@ -773,7 +775,7 @@ function renderBoard(){
     return `
     <tr onclick="openDetail(${i})"${i===cur?' class="now"':''}>
       <td class="no">${String(e.no).padStart(2,"0")}</td>
-      <td class="title">${e.title}</td>
+      <td class="title">${esc(cleanTitle(e.title))}</td>
       <td class="src">${e.src}</td>
       <td class="chars">${e.chars}자</td>
       <td class="lv"><span class="badge">${LV[e.lv].name}</span></td>
@@ -810,23 +812,33 @@ function showList(ev){
   document.getElementById("pageList").classList.add("show");
   window.scrollTo(0,0);
 }
-function openDetail(i){
+function openDetail(i, skipPush){
   closeDrawers();
   const lp=document.getElementById("listPop"); if(lp) lp.style.display="none";
   cur = i;
   const e = editorials[i];
   document.getElementById("dNo").textContent = `사설 ${String(e.no).padStart(2,"0")}`;
-  document.getElementById("dTitle").textContent = e.title;
+  document.getElementById("dTitle").textContent = cleanTitle(e.title);
   document.getElementById("dSrc").textContent = e.src;
   const dd=document.getElementById("dDate"); if(dd) dd.textContent = edDate(e);
   document.getElementById("pageList").classList.remove("show");
   document.getElementById("pageDetail").classList.add("show");
   if(typeof setSideActive === "function") setSideActive("pageList");
   renderBoard();
-  if(typeof renderRail === "function") renderRail();
+  if(!skipPush) history.pushState({page:"pageDetail", idx:i}, "", "#practice");
   resetAll();
   window.scrollTo(0,0);
 }
+/* 브라우저 뒤로가기: 직전 화면으로 복원 */
+window.addEventListener("popstate", ev=>{
+  const s = ev.state || {page:"pageList"};
+  if(s.page === "pageDetail" && editorials[s.idx]){ openDetail(s.idx, true); }
+  else {
+    if(typeof goPage === "function"){ goPage("pageList"); }
+    else { showList(); }
+  }
+});
+history.replaceState({page:"pageList"}, "", location.href);
 function openNext(){ openDetail((cur+1)%editorials.length); }
 function goPrev(){ openDetail((cur-1+editorials.length)%editorials.length); }
 function goNext(){ openDetail((cur+1)%editorials.length); }
@@ -834,17 +846,31 @@ function toggleListPop(ev){
   ev && ev.stopPropagation();
   const pop=document.getElementById("listPop");
   if(pop.style.display==="block"){ pop.style.display="none"; return; }
-  pop.innerHTML = `<div class="lp-head"><span class="n">번호</span><span class="tt">제목</span><span class="m">신문사 · 글자수</span></div>` + editorials.map((e,i)=>`<button onclick="event.stopPropagation();openDetail(${i});document.getElementById('listPop').style.display='none'"><span class="n">${String(e.no).padStart(2,"0")}</span><span class="tt">${e.title}</span><span class="m">${e.src} · ${e.chars}자</span></button>`).join("");
+  pop.innerHTML = `<div class="lp-head"><span class="n">번호</span><span class="tt">제목</span><span class="m">신문사 · 글자수</span></div>` + editorials.map((e,i)=>`      <button onclick="event.stopPropagation();openDetail(${i});document.getElementById('listPop').style.display='none'"><span class="n">${String(e.no).padStart(2,"0")}</span><span class="tt">${esc(cleanTitle(e.title))}</span><span class="m">${e.src} · ${e.chars}자</span></button>`).join("");
   pop.style.display="block";
 }
 document.addEventListener("click",ev=>{ const pop=document.getElementById("listPop"); if(pop && !pop.contains(ev.target)) pop.style.display="none"; });
 
 /* ── 설정 ── */
 let curTab="see";
+/* ── 테스트 진행 중 버튼 가드 ── */
+function runningNow(){ return running || !!cdTimer || playing || !!hCdTimer; }
+function setGuardUI(on){
+  document.querySelectorAll(".btn-row button, .nav-group button").forEach(b=>{
+    if(b) b.classList.toggle("guarded", on);
+  });
+}
+function guardRun(action){
+  if(!runningNow()){ action(); return; }
+  if(confirm("테스트중입니다. 중지하시겠습니까?")){
+    stopRun(); stopHear();
+    action();
+  }
+}
 function confirmAbort(){
-  if(!running && !cdTimer && !hCdTimer) return true;
-  if(confirm("테스트를 중단하시겠습니까?")){
-    stopRun(); revealed = 0; elapsedBase = 0;
+  if(!runningNow()) return true;
+  if(confirm("테스트중입니다. 중지하시겠습니까?")){
+    stopRun(); stopHear(); revealed = 0; elapsedBase = 0;
     renderPrompt(); updateTimes(); updateStats();
     return true;
   }
@@ -904,7 +930,7 @@ function updateNotes(){
   if(!el) return;
   const n = target.length;
   const mins = cpm>0 ? n/cpm : 0;
-  el.innerHTML = `수집 <b>${n}</b>자 · ${L.name} ${L.from}~${L.to}자/분 · 현재 <b>${cpm}</b>자/분 기준 약 <b>${mins.toFixed(1)}</b>분`;
+  el.innerHTML = `${L.name} ${L.from}~${L.to}자/분 · 현재 <b>${cpm}</b>자/분 기준 약 <b>${mins.toFixed(1)}</b>분`;
 }
 
 function toggleDrawer(id){
@@ -970,6 +996,7 @@ function beginRun(){
   running = true; startAt = Date.now();
   rTimer = setInterval(tickReveal, 60000/cpm);
   eTimer = setInterval(updateTimes, 1000);
+  setGuardUI(true);
 }
 function startRun(){
   if(revealed >= target.length){ revealed = 0; renderPrompt(); }
@@ -993,6 +1020,7 @@ function stopRun(){
   if(eTimer){ clearInterval(eTimer); eTimer = null; }
   if(startAt){ elapsedBase += (Date.now()-startAt)/1000; startAt = null; }
   const b = document.getElementById("btnPlay"); if(b) b.innerHTML = "▶ 테스트 시작";
+  setGuardUI(false);
 }
 function toggleRun(){ if(running){ stopRun(); renderPrompt(); } else startRun(); }
 function rewindRun(){ stopRun(); revealed = 0; elapsedBase = 0; renderPrompt(); updateTimes(); }
@@ -1185,6 +1213,9 @@ function sentStarts(text){
   return out;
 }
 function gradeAll(){
+  guardRun(_gradeAllInner);
+}
+function _gradeAllInner(){
   const rawTyped = document.getElementById("typer").value;
   if(!rawTyped.trim()){ alert("먼저 스크립트를 입력해 주세요."); return; }
   stopRun(); stopHear();
@@ -1296,17 +1327,17 @@ function gradeRetry(){
   if(typeof collectErrors === "function") collectErrors(R.marks, R.mT);
 }
 
-/* ── 스크립트 규격화: 괄호안 생략 + 700~1,000자(공백 제외)로 축소 ── */
+/* ── 스크립트 규격화: 괄호안 생략 + 최대 1,100자(공백 제외)로 축소 ── */
 function fitBody(raw){
   if(!raw) return "";
   let t = String(raw).replace(/\\엔/g," ").replace(/\s+/g," ").trim();
   t = t.replace(/\([^()]*\)/g," ").replace(/\[[^\[\]]*\]/g," ").replace(/\s{2,}/g," ").trim();
   const cnt = a => a.replace(/\s/g,"").length;
-  if(cnt(t) <= 1000) return t;
+  if(cnt(t) <= 1100) return t;
   let acc=0, lastEnd=-1, best=-1;
   for(let i=0;i<t.length;i++){
     if(!/\s/.test(t[i])) acc++;
-    if(acc > 1000) break;
+    if(acc > 1100) break;
     if(/[.!?]/.test(t[i])){
       lastEnd = i;
       if(acc >= 700) best = i;
@@ -1314,6 +1345,10 @@ function fitBody(raw){
   }
   const cut = best>=0 ? best : (lastEnd>=0 ? lastEnd : t.length-1);
   return t.slice(0, cut+1).trim();
+}
+/* 제목에서 [사설]·[기고] 등 괄호 문구 제거 — 신문사는 별도 표기 */
+function cleanTitle(t){
+  return String(t||"").replace(/^\s*[\[【(]\s*(사설|기고|논설|칼럼|단상|시평)\s*[\]】)]\s*/,"").replace(/\s*[\[【]\s*사설\s*[\]】]\s*$/,"").trim();
 }
 
 function resetAll(){
@@ -1983,7 +2018,7 @@ document.addEventListener("keydown", ev=>{
         const ch = +p.chars_nospace || String(p.text).replace(/\s/g,"").length;
         got.push({
           date: j.date || dt,
-          title: String(p.title).trim(),
+          title: cleanTitle(p.title),
           src: p.outlet || "",
           chars: ch,
           body: String(p.text),
