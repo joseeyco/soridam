@@ -313,6 +313,8 @@ class BodyGrabber(HTMLParser):
 
 NOISE = re.compile(
     r"(www\.|https?://|ⓒ|©|Copyright|무단\s*전재|재배포|저작권|이메일|@[\w.-]+\.|"
+    r"주소\s*:|전화\s*:|팩스\s*:|등록번호|등록일자|발행인|편집인|사업자|통신판매|대표자명|\$\{|"
+    r"구독\s*후\s*열람|회원이\s*되어|회원에게만|"
     r"입력\s*\d{4}|수정\s*\d{4}|\d{4}[.\-/]\d{1,2}[.\-/]\d{1,2}\s+\d{1,2}:\d{2}|구독하기|제보하기)", re.I)
 UI_WORDS = re.compile(
     r"광고|인쇄|프린트|스크랩|글자\s*크기|글씨\s*크기|가\s*가|공유하기|공유|페이스북|트위터|엑스|카카오톡|"
@@ -439,6 +441,35 @@ def body_key(text):
     return re.sub(r"[^0-9a-z가-힣]", "", (text or "").lower())[:60]
 
 
+def _pick_items(j):
+    """과거 JSON의 여러 형식을 모두 지원: v4/v5 dict(picked), 구버전 list(한글 키), 'text' 키 변형."""
+    if isinstance(j, dict):
+        items = j.get("picked") or j.get("articles") or []
+    elif isinstance(j, list):
+        items = j
+    else:
+        items = []
+    for p in items:
+        if not isinstance(p, dict):
+            continue
+        yield (p.get("url") or p.get("원문 URL") or "",
+               p.get("title") or p.get("제목") or "",
+               p.get("body") or p.get("text") or p.get("본문") or "")
+
+
+def _scan_broken(raw):
+    """JSON이 깨진 파일은 정규식으로 URL/제목/본문만 건져낸다."""
+    for m in re.finditer(r'"(?:url|원문 URL)"\s*:\s*"([^"]+)"', raw):
+        yield m.group(1), "", ""
+    for m in re.finditer(r'"(?:title|제목)"\s*:\s*"((?:[^"\\]|\\.)*)"', raw):
+        yield "", m.group(1), ""
+    for m in re.finditer(r'"(?:body|text|본문)"\s*:\s*"((?:[^"\\]|\\.)*)"', raw):
+        try:
+            yield "", "", json.loads('"' + m.group(1) + '"')
+        except Exception:
+            continue
+
+
 def load_history():
     urls, titles, bodies = set(), set(), set()
     today_file = f"{TODAY.strftime('%Y-%m-%d')}.json"
@@ -447,16 +478,21 @@ def load_history():
             continue
         try:
             with open(f, encoding="utf-8") as fh:
-                j = json.load(fh)
+                raw = fh.read()
         except Exception:
             continue
-        for p in j.get("picked", []):
-            if p.get("url"):
-                urls.add(norm_url(p["url"]))
-            if p.get("title"):
-                titles.add(title_key(p["title"]))
-            if p.get("body"):
-                bodies.add(body_key(p["body"]))
+        try:
+            entries = list(_pick_items(json.loads(raw)))
+        except Exception as e:
+            print(f"  [history warn {os.path.basename(f)}: JSON 형식 오류 → 부분 복구] {e}", file=sys.stderr)
+            entries = list(_scan_broken(raw))
+        for url, title, body in entries:
+            if url:
+                urls.add(norm_url(url))
+            if title:
+                titles.add(title_key(title))
+            if body:
+                bodies.add(body_key(body))
     return {"urls": urls, "titles": titles, "bodies": bodies}
 
 
