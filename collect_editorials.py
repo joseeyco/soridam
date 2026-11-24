@@ -1,861 +1,579 @@
 # -*- coding: utf-8 -*-
-"""소담 사설 자동 수집기 v2
+"""소담 사설 자동수집기 v5 — 무료 Bing News RSS 기반 (GitHub Actions 매일 04:00 KST 실행용)
 
-정리 규칙
-1) 본문 공백 제외 1100자를 넘으면 문장 단위로 자연스럽게 잘라 1100자 이내로 맞춘다.
-2) 하루 수집분은 주제가 겹치지 않도록 클러스터링해서 뽑는다.
-3) 같은 신문사는 하루에 한 번만 넣는다.
-4) 제목 맨앞에 [신문사명]을 붙인다.
-5) 어떤 상황에서도 10편을 채운다(후보가 부족하면 조건을 단계적으로 완화).
-
-사용 예)
-  python3 collect_editorials.py --date 2026-11-21 --window 3
-  python3 collect_editorials.py --date 2026-11-21 --window 3 --dump-pool
+v5 변경점 (v4 대비)
+ 1) 700 ~ 1,099자(공백 제외)  : 1,100자 이상이면 버리지 않고 '문장 단위 자동발췌'로 맞춤
+ 2) 과거 수집분 제외          : data/*.json 의 URL · 제목 · 본문 앞부분으로 중복 판정
+ 3) 같은 날 동일 주제 회피    : 제목/본문 키워드 유사도로 판정 (휴리스틱)
+ 4) 동일 신문사 1편           : 신문사당 최대 1편
+ 5) 본문 정제                 : 광고/인쇄/공유/스크랩/기자 바이라인/사진 캡션 등 제거
+                               (중첩 <div> 때문에 본문이 잘리던 정규식 방식을 HTML 파서로 교체)
+ 6) 최신 기사만               : Bing pubDate 기준 48시간 이내
+ 7) 신문사 순서 편향 제거     : 날짜 시드로 신문사 순서를 섞어서 선택
+ 8) 괄호 제거 범위 축소       : 영문·한자가 들어있는 괄호만 제거 ((1.5%) 같은 숫자 괄호는 유지)
+ 9) SSL 인증서 검증 켬, 네트워크 재시도 추가
+유지: [신문사] 제목 헤더 · 길이 오름차순 1~10번
 """
-import argparse
-import copy
-import html as html_lib
-import json
-import os
-import re
-import ssl
-import sys
-import time
-import urllib.parse
-import urllib.request
-import xml.etree.ElementTree as ET
+import os, re, json, sys, ssl, time, random, html as H
+import urllib.request, urllib.parse
+from collections import Counter
+from glob import glob
+from html.parser import HTMLParser
+from email.utils import parsedate_to_datetime
 from datetime import datetime, timedelta, timezone
-from urllib.parse import urljoin
-
-from bs4 import BeautifulSoup
 
 KST = timezone(timedelta(hours=9))
+TODAY = datetime.now(KST)
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
-REQUEST_INTERVAL = 1.0
-CHAR_LIMIT = 1100          # 규칙 1: 공백 제외 1100자 상한
-MIN_CHARS = 400            # 이보다 짧으면 사설 본문으로 보지 않는다
-TARGET_COUNT = 10          # 규칙 5
+CTX = ssl.create_default_context()
 
-OUTLETS = [
-    ("조선일보", "chosun.com"),
-    ("중앙일보", "joongang.co.kr"),
-    ("동아일보", "donga.com"),
-    ("한겨레", "hani.co.kr"),
-    ("경향신문", "khan.co.kr"),
-    ("문화일보", "munhwa.com"),
-    ("서울신문", "seoul.co.kr"),
-    ("국민일보", "kmib.co.kr"),
-    ("세계일보", "segye.com"),
-    ("매일경제", "mk.co.kr"),
-    ("한국경제", "hankyung.com"),
-    ("프레시안", "pressian.com"),
-    ("헤럴드경제", "heraldcorp.com"),
-    ("아시아경제", "asiae.co.kr"),
-    ("이데일리", "edaily.co.kr"),
-]
+MIN_CHARS = 700          # 공백 제외 최소
+MAX_EXCL = 1100          # 1,100 '미만'만 허용
+EXCERPT_CAP = 1090       # 발췌 시 목표 상한
+TARGET_CHARS = 900       # 후보 정렬 기준점
+PICK = 10
+MAX_AGE_H = 48           # 이 시간보다 오래된 기사는 제외
+PER_OUTLET_TRY = 4       # 신문사당 확인할 후보 수
+DATA_DIR = "data"
 
-# RSS가 오래된 글만 주는 신문사는 사설 목록 페이지에서 직접 긁는다.
-LIST_PAGES = {
-    "donga.com": "https://www.donga.com/news/Opinion/editorial",
-    "munhwa.com": "https://www.munhwa.com/news/section_list.html?sec=opinion",
-    "pressian.com": "https://www.pressian.com/pages/opinion",
+OUTLETS = {  # 이름: bing 쿼리/허용 도메인
+    "조선일보": "chosun.com",
+    "중앙일보": "joongang.co.kr",
+    "동아일보": "donga.com",
+    "한겨레": "hani.co.kr",
+    "경향신문": "khan.co.kr",
+    "문화일보": "munhwa.com",
+    "서울신문": "seoul.co.kr",
+    "국민일보": "kmib.co.kr",
+    "세계일보": "segye.com",
+    "매일경제": "mk.co.kr",
+    "한국경제": "hankyung.com",
+    "프레시안": "pressian.com",
+    "헤럴드경제": "heraldcorp.com",
+    "뉴시스": "newsis.com",
+    "아시아경제": "asiae.co.kr",
+    "이데일리": "edaily.co.kr",
 }
 
-_last_request_at = 0.0
+
+def nospace(s):
+    return len(re.sub(r"\s", "", s or ""))
 
 
-# ---------------------------------------------------------------- 유틸
-def compact_length(value):
-    return len(re.sub(r"\s+", "", value or ""))
-
-
-def normalize_text(value):
-    value = html_lib.unescape(value or "")
-    value = value.replace("\xa0", " ")
-    value = re.sub(r"[ \t\r\f\v]+", " ", value)
-    value = re.sub(r"\n\s*\n+", "\n", value)
-    return value.strip()
-
-
-def throttle():
-    global _last_request_at
-    wait = REQUEST_INTERVAL - (time.monotonic() - _last_request_at)
-    if wait > 0:
-        time.sleep(wait)
-    _last_request_at = time.monotonic()
-
-
-def decode_bytes(raw, content_type):
-    encodings = []
-    match = re.search(r"charset=([\w-]+)", content_type or "", flags=re.I)
-    if match:
-        encodings.append(match.group(1))
-    head = raw[:4096].decode("ascii", errors="ignore")
-    match = re.search(r"charset=[\"']?([\w-]+)", head, flags=re.I)
-    if match:
-        encodings.append(match.group(1))
-    encodings.extend(["utf-8", "euc-kr", "cp949"])
-    for encoding in encodings:
+def fetch(url, timeout=20, tries=3):
+    last = None
+    for i in range(tries):
         try:
-            return raw.decode(encoding)
-        except (LookupError, UnicodeDecodeError):
-            continue
-    return raw.decode("utf-8", errors="replace")
+            req = urllib.request.Request(
+                url, headers={"User-Agent": UA, "Accept-Language": "ko-KR,ko;q=0.9"})
+            with urllib.request.urlopen(req, timeout=timeout, context=CTX) as r:
+                return r.read()
+        except Exception as e:
+            last = e
+            time.sleep(1.5 * (i + 1))
+    raise last
 
 
-def fetch(url, timeout=25):
-    throttle()
-    context = ssl.create_default_context()
-    context.check_hostname = False
-    context.verify_mode = ssl.CERT_NONE
-    request = urllib.request.Request(url, headers={
-        "User-Agent": UA,
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "ko-KR,ko;q=0.9,en;q=0.6",
-    })
-    with urllib.request.urlopen(request, timeout=timeout, context=context) as response:
-        raw = response.read()
-        return response.status, decode_bytes(raw, response.headers.get("Content-Type", "")), response.geturl()
+# ─────────────────────────────────────────────────────────────
+# 괄호 안 영문·한자 첨자 제거 (한글이 있거나 숫자뿐인 괄호는 유지)
+# ─────────────────────────────────────────────────────────────
+HAN = re.compile(r"[가-힣]")
+LATIN_HANJA = re.compile(r"[A-Za-z\u3400-\u4dbf\u4e00-\u9fff]")
+PAREN_GROUP = re.compile(r"[(（]\s*([^()（）]{0,40}?)\s*[)）]")
 
 
-# ---------------------------------------------------------------- 후보 수집
-def decode_bing_link(link):
-    parsed = urllib.parse.urlparse(link or "")
-    query = urllib.parse.parse_qs(parsed.query)
-    for key in ("url", "u"):
-        for value in query.get(key, []):
-            if value.startswith("http"):
-                return value
-    match = re.search(r"[?&]url=([^&]+)", link or "")
-    return urllib.parse.unquote(match.group(1)) if match else (link or "")
+def _paren_repl(m):
+    inner = m.group(1)
+    if HAN.search(inner):
+        return m.group(0)
+    return "" if LATIN_HANJA.search(inner) else m.group(0)
 
 
-def domain_matches(url, domain):
-    host = urllib.parse.urlparse(url).netloc.lower().split(":")[0]
-    return host == domain or host.endswith("." + domain)
+def _drop_unbalanced(s):
+    stack, drop = [], set()
+    for i, ch in enumerate(s):
+        if ch in "(（":
+            stack.append(i)
+        elif ch in ")）":
+            if stack:
+                stack.pop()
+            else:
+                drop.add(i)
+    drop.update(stack)
+    return "".join(c for i, c in enumerate(s) if i not in drop)
 
 
-def normalized_title(value):
-    return re.sub(r"\s+", "", html_lib.unescape(value or "")).strip("[]()")
-
-
-def bing_items(domain):
-    query = urllib.parse.quote_plus(f"[사설] site:{domain}")
-    rss_url = f"https://www.bing.com/news/search?q={query}&format=RSS&setLang=ko"
-    _, body, _ = fetch(rss_url)
-    root = ET.fromstring(body)
-    items, seen = [], set()
-    for node in root.findall(".//item"):
-        title = normalize_text(node.findtext("title") or "")
-        actual_url = decode_bing_link((node.findtext("link") or "").strip())
-        if not actual_url or not domain_matches(actual_url, domain):
-            continue
-        key = re.sub(r"\?.*$", "", actual_url)
-        if key in seen:
-            continue
-        seen.add(key)
-        items.append({
-            "title": title,
-            "url": actual_url,
-            "published": (node.findtext("pubDate") or "").strip(),
-        })
-    return rss_url, items
-
-
-def list_page_items(domain):
-    url = LIST_PAGES.get(domain)
-    if not url:
-        return "", []
-    _, page, final = fetch(url)
-    soup = BeautifulSoup(page, "lxml")
-    items, seen = [], set()
-    for anchor in soup.find_all("a", href=True):
-        title = normalize_text(anchor.get_text(" ", strip=True))
-        if "사설" not in title or compact_length(title) < 8:
-            continue
-        href = urljoin(final, anchor["href"])
-        if not domain_matches(href, domain) or "bing.com" in href:
-            continue
-        key = re.sub(r"\?.*$", "", href)
-        if key in seen:
-            continue
-        seen.add(key)
-        items.append({"title": title, "url": href, "published": ""})
-    return url, items
-
-
-# ---------------------------------------------------------------- 본문 추출
-def walk_json_ld(value):
-    if isinstance(value, dict):
-        body = value.get("articleBody")
-        if isinstance(body, str) and body.strip():
-            yield body
-        for child in value.values():
-            yield from walk_json_ld(child)
-    elif isinstance(value, list):
-        for child in value:
-            yield from walk_json_ld(child)
-
-
-def extract_json_ld_body(page):
-    soup = BeautifulSoup(page, "lxml")
-    for script in soup.find_all("script", attrs={"type": re.compile(r"application/ld\+json", re.I)}):
-        raw = script.string or script.get_text()
-        try:
-            data = json.loads(raw)
-        except json.JSONDecodeError:
-            cleaned = re.sub(r"^\s*<!\[CDATA\[|\]\]>\s*$", "", raw).strip()
-            try:
-                data = json.loads(cleaned)
-            except json.JSONDecodeError:
-                continue
-        for body in walk_json_ld(data):
-            text = normalize_text(body)
-            if compact_length(text) >= MIN_CHARS:
-                return text
-    return ""
-
-
-def clean_node(node, remove_selectors):
-    copied = copy.copy(node)
-    for selector in remove_selectors:
-        for child in copied.select(selector):
-            child.decompose()
-    return normalize_text(copied.get_text(" ", strip=True))
-
-
-def paragraph_texts(node, min_length=30, excluded_ancestors=None):
-    excluded_ancestors = excluded_ancestors or []
-    values = []
-    for paragraph in node.find_all("p"):
-        text = normalize_text(paragraph.get_text(" ", strip=True))
-        if compact_length(text) < min_length:
-            continue
-        if is_ui_chrome(text):
-            continue
-        excluded = False
-        for ancestor in paragraph.parents:
-            if not getattr(ancestor, "name", None):
-                continue
-            marker = " ".join([ancestor.get("id") or "", " ".join(ancestor.get("class") or [])]).lower()
-            if any(token in marker for token in excluded_ancestors):
-                excluded = True
-                break
-        if not excluded:
-            values.append(text)
-    return values
-
-
-def extract_chosun(page):
-    soup = BeautifulSoup(page, "lxml")
-    best = ""
-    for script in soup.find_all("script"):
-        raw = script.string or script.get_text()
-        if '"content":' not in raw:
-            continue
-        values = []
-        for match in re.finditer(r'"content":("(?:\\.|[^"\\])*")', raw):
-            try:
-                value = json.loads(match.group(1))
-            except json.JSONDecodeError:
-                continue
-            if compact_length(value) >= 40:
-                values.append(value)
-        text = normalize_text(" ".join(values))
-        if compact_length(text) > compact_length(best):
-            best = text
-    return best
-
-
-def extract_outlet_selector(page, domain):
-    soup = BeautifulSoup(page, "lxml")
-    if domain == "chosun.com":
-        return extract_chosun(page)
-    mapping = {
-        "joongang.co.kr": "#article_body",
-        "donga.com": "section.news_view",
-        "hani.co.kr": ".article-text",
-        "khan.co.kr": "#articleBody",
-        "munhwa.com": "#article-body",
-        "seoul.co.kr": "#articleContent",
-        "kmib.co.kr": "#articleBody",
-        "segye.com": "#article_txt",
-        "mk.co.kr": ".news_cnt_detail_wrap",
-        "hankyung.com": ".article-body",
-        "pressian.com": ".article_body",
-        "heraldcorp.com": "article#articleText, article.article-body, article.article-view",
-        "asiae.co.kr": ".article_view",
-        "edaily.co.kr": ".news_body",
-    }
-    selector = mapping.get(domain)
-    if not selector:
-        return ""
-    node = soup.select_one(selector)
-    if not node:
-        return ""
-    excluded = ["footer", "header", "nav", "rank", "card", "swiper", "recommend", "related",
-                "policy-box", "subscribe", "adwrap", "imagecontainer", "photo", "caption"]
-    paragraphs = paragraph_texts(node, min_length=30, excluded_ancestors=excluded)
-    if paragraphs and domain != "donga.com":
-        return normalize_text(" ".join(paragraphs))
-    return clean_node(node, ["figure", "script", "style", ".ad", ".ad-txt-picbtm"])
-
-
-def drop_chrome_containers(soup):
-    for node in soup.find_all(["section", "div", "p", "ul", "aside"]):
-        marker = " ".join([node.get("id") or "", " ".join(node.get("class") or [])]).lower()
-        if any(hint in marker for hint in CHROME_CONTAINER_HINTS):
-            node.decompose()
-    return soup
-
-
-def extract_paragraph_cluster(page):
-    soup = drop_chrome_containers(BeautifulSoup(page, "lxml"))
-    excluded = ["footer", "header", "nav", "rank", "card", "swiper", "recommend",
-                "related", "policy-box", "subscribe"]
-    groups = {}
-    for paragraph in soup.find_all("p"):
-        text = normalize_text(paragraph.get_text(" ", strip=True))
-        if compact_length(text) < 30:
-            continue
-        parent = paragraph.find_parent(["div", "article", "section"])
-        if not parent:
-            continue
-        marker = " ".join([parent.get("id") or "", " ".join(parent.get("class") or [])]).lower()
-        if any(token in marker for token in excluded):
-            continue
-        key = (parent.name, parent.get("id") or "", " ".join(parent.get("class") or []))
-        groups.setdefault(key, []).append(text)
-    candidates = [normalize_text(" ".join(v)) for v in groups.values()]
-    candidates = [t for t in candidates if compact_length(t) >= MIN_CHARS]
-    if not candidates:
-        return ""
-    candidates.sort(key=lambda t: abs(compact_length(t) - 950))
-    return candidates[0]
-
-
-
-# ---------------------------------------------------------------- 본문 아님(UI 크롬) 제거
-# 기사 본문이 아니라 기사 페이지의 조작 버튼·안내 문구. 어떤 경로로 딸려 들어와도 지운다.
-UI_CHROME_PATTERNS = [
-    r"(?<![가-힣])인쇄(?:하기)?(?![가-힣])",
-    r"(?<![가-힣])메일(?:로\s*보내기|보내기)?(?![가-힣])",
-    r"페이스북\s*(?:공유|로그인)",
-    r"트위터\s*(?:공유|로그인)",
-    r"(?:url|URL|링크|카카오톡|카카오|밴드|네이버)\s*(?:공유|복사|보내기)",
-    r"(?<![가-힣])공유하기(?![가-힣])",
-    r"스크랩(?:하기)?",
-    r"글씨\s*크기\s*선택",
-    r"가장\s*작은\s*크기\s*글자",
-    r"한\s*단계\s*작은\s*크기\s*글자",
-    r"기본\s*크기\s*글자",
-    r"한\s*단계\s*큰\s*크기\s*글자",
-    r"가장\s*큰\s*크기\s*글자",
-    r"글자\s*크기\s*(?:조절|변경|확대|축소)",
-    r"구글\s*선호\s*매체\s*등록",
-    r"선호\s*매체\s*(?:등록|해제)",
-    r"구글\s*뉴스(?:에서\s*보기)?",
-    r"관련\s*이슈",
-    r"입력\s*:\s*\d{4}-\d{2}-\d{2}\s*\d{2}:\d{2}",
-    r"수정\s*:\s*\d{4}-\d{2}-\d{2}\s*\d{2}:\d{2}",
-    r"(?<![가-힣])댓글\s*(?:\d+)?\s*(?:보기|쓰기|달기)?(?![가-힣])",
-    r"(?<![가-힣])추천\s*\d*(?![가-힣])",
-    r"반응\s*\d+",
-    r"목록으로|기사\s*목록",
-    r"이전\s*기사|다음\s*기사",
-    r"많이\s*본\s*뉴스",
-    r"이\s*기사를\s*추천합니다",
-    r"구독(?:하기|신청)",
-    r"무단\s*전재[^.]{0,20}금지",
-]
-UI_CHROME_RE = re.compile("|".join(f"(?:{p})" for p in UI_CHROME_PATTERNS), re.I)
-CHROME_LEFT_MAX = 8           # 크롬 문구를 걷어낸 뒤 남는 글자가 이보다 적으면 본문이 아니다
-CHROME_MIN_MARKS = 2          # 크롬 표시가 2개 이상이면 문장 단위로도 버린다
-
-
-def chrome_marks(text):
-    return len(UI_CHROME_RE.findall(text or ""))
-
-
-def _chrome_leftover(text):
-    leftover = UI_CHROME_RE.sub(" ", text or "")
-    leftover = re.sub(r"[\s\-+|·,./()\[\]<>\"']", "", leftover)
-    return compact_length(leftover)
-
-
-def is_ui_chrome(text):
-    """문장·문단이 본문이 아니라 기사 페이지 버튼/안내문인지 판별.
-
-    크롬 표시가 1개뿐이면('추천' 같은 낱말이 본문에 섞인 경우) 거의 확실한 크롬만 버린다.
-    """
-    if not text:
-        return False
-    marks = chrome_marks(text)
-    if marks == 0:
-        return False
-    leftover = _chrome_leftover(text)
-    if marks >= 2:
-        return leftover <= CHROME_LEFT_MAX
-    return leftover <= 3
-
-
-def strip_ui_chrome(text):
-    """문장 단위로 크롬 문구를 제거하고, 크롬 덩어리 문장은 통째로 버린다."""
+def strip_annotations(text):
     if not text:
         return text
-    kept = []
-    for sentence in split_sentences(text):
-        marks = chrome_marks(sentence)
-        if marks == 0:
-            kept.append(sentence)
+    s = text
+    for _ in range(4):
+        before = s
+        s = PAREN_GROUP.sub(_paren_repl, s)
+        if s == before:
+            break
+    s = _drop_unbalanced(s)
+    s = re.sub(r"[ \t]{2,}", " ", s)
+    s = re.sub(r"[ \t]+([,.;:!?])", r"\1", s)
+    return s.strip()
+
+
+# ─────────────────────────────────────────────────────────────
+# 제목 정리 + [신문사] 헤더
+# ─────────────────────────────────────────────────────────────
+TITLE_PREFIX = re.compile(r"^\s*[\[\(（【]\s*(?:사설|기고|논설|오피니언|칼럼|시론|특집|분석)\s*[\]\)）】]\s*")
+TITLE_OUTLET = re.compile(r"^\s*\[[^\]]{1,10}\]\s*")
+TITLE_TAIL = re.compile(r"\s+[-–—|]\s+([^-–—|]{1,20})$")      # Bing 제목 뒤 " - 조선일보"
+
+
+def _strip_tail(t):
+    m = TITLE_TAIL.search(t)
+    if m:
+        tail = m.group(1)
+        if any(n in tail for n in OUTLETS) or re.search(r"\.(com|kr|net)$", tail.strip()):
+            return t[:m.start()]
+    return t
+
+
+def clean_title(t):
+    s = H.unescape(t or "").strip()
+    s = _strip_tail(s)
+    for _ in range(3):
+        before = s
+        s = TITLE_PREFIX.sub("", s)
+        s = TITLE_OUTLET.sub("", s)
+        if s == before:
+            break
+    s = strip_annotations(s)
+    s = re.sub(r"^[\s\-–—:·|]+", "", s)
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def with_outlet(outlet, title):
+    return f"[{outlet}] {clean_title(title)}"
+
+
+EDITORIAL_TAG = re.compile(r"[\[【(][^\]】)]{0,10}사설|^\s*사설\b")
+
+
+def is_editorial(title):
+    return bool(EDITORIAL_TAG.search(title))
+
+
+# ─────────────────────────────────────────────────────────────
+# Bing News RSS → 최신 사설 후보
+# ─────────────────────────────────────────────────────────────
+def bing_items(domain):
+    seen, out = set(), []
+    for q in (f'"[사설]" site:{domain}', f'사설 site:{domain}', f'"[기고]" OR "논설" site:{domain}'):
+        url = f"https://www.bing.com/news/search?q={urllib.parse.quote(q)}&format=RSS&setLang=ko"
+        try:
+            d = fetch(url).decode("utf-8", "replace")
+        except Exception as e:
+            print(f"  [bing err {domain}: {e}]", file=sys.stderr)
             continue
-        leftover = _chrome_leftover(sentence)
-        if (leftover <= CHROME_LEFT_MAX if marks >= 2 else leftover <= 3):
-            continue                      # 통째로 크롬 → 버린다
-        if marks >= 3 and leftover <= 60:
-            # 크롬 덩어리에 본문 한 문장이 붙어 있는 경우만 그 문장만 남긴다
-            cleaned = UI_CHROME_RE.sub(" ", sentence)
-            cleaned = re.sub(r"\s{2,}", " ", cleaned).strip(" ,·-|+")
-            if compact_length(cleaned) >= 12:
-                kept.append(cleaned)
-            continue
-        kept.append(sentence)             # 본문 문장 → 손대지 않는다
-    return re.sub(r"\s{2,}", " ", " ".join(kept)).strip()
-
-
-CAPTION_MARKERS = ["포즈를 취한", "사진기자", "연합뉴스", "로이터", "원본보기", "이미지 확대", "캡션", "자료사진"]
-
-COLUMN_MARKERS = ["겜스파일", "공간과 스타일", "주간스타트업동향", "기자]", "포토", "영상"]
-
-CHROME_CONTAINER_HINTS = ["viewhelp", "conttitle", "share", "sns", "fontsize", "font-size",
-                          "font_size", "print", "byline", "reporter", "articlehead", "newshead",
-                          "preferred-source", "toolbar"]
-
-BOILERPLATE = [
-    r"<ⓒ[^>]*>",
-    r"ⓒ\s*[^.]{0,60}(무단전재|무단 전재)[^.]*\.?",
-    r"Copyright\s*ⓒ[^.]*\.?",
-    r"저작권자\s*ⓒ[^.]*\.?",
-    r"무단\s*전재\s*(및|·)?\s*재배포\s*금지[^.]*\.?",
-    r"AI\s*학습\s*및\s*활용\s*금지[^>]*>?",
-    r"[가-힣A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}",
-    r"\d{4}-\d{2}-\d{2}\s*\d+면",
-    r"구글에서\s+\S+\s+먼저\s+보기",
-    r"^\s*\[[^\]]{1,12}\]\s*$",
-    r"무단\s*전재\s*[-–]?\s*재배포[^.]{0,20}$",
-    r"View\s*English\s*Article",
-    r"오늘의\s*주요\s*뉴스[^.]{0,40}",
-    r"모닝에디트[^.]{0,20}",
-    r"이\s*기사를\s*추천합니다[^.]{0,20}",
-    r"구독하기[^.]{0,20}",
-    r"이런\s*구독물도\s*추천합니다!?",
-    r"구독물도\s*추천합니다!?",
-    r"\b[가-힣]{2,4}\s*기자\s*$",
-    r"\b[가-힣]{2,4}\s*특파원\s*$",
-    r"이미지\s*확대\s*(?:보기|닫기)",
-    r"원본보기\s*아이콘",
-    r"로이터\s*연합뉴스",
-    r"(?<=[\s.])AD(?=\s)",
-]
-
-
-def clean_body(text):
-    text = normalize_text(text)
-    text = strip_ui_chrome(text)
-    for pattern in BOILERPLATE:
-        text = re.sub(pattern, " ", text, flags=re.I)
-    text = re.sub(r"\([^)]{0,20}(사진|자료사진|연합뉴스|뉴시스|Getty)[^)]{0,20}\)", " ", text)
-    text = re.sub(r"\s{2,}", " ", text)
-    text = text.strip(" ,·-")
-    sentences = split_sentences(text)
-    if len(sentences) > 1:
-        kept = []
-        for idx, sentence in enumerate(sentences):
-            if idx < 2 and (compact_length(sentence) < 10 or any(k in sentence for k in CAPTION_MARKERS)):
+        d = re.sub(r"<!\[CDATA\[(.*?)\]\]>", r"\1", d, flags=re.S)
+        for it in re.findall(r"<item>(.*?)</item>", d, re.S):
+            t = re.search(r"<title>(.*?)</title>", it, re.S)
+            l = re.search(r"<link>(.*?)</link>", it, re.S)
+            p = re.search(r"<pubDate>(.*?)</pubDate>", it, re.S)
+            if not (t and l):
                 continue
-            kept.append(sentence)
-        text = " ".join(kept)
-    endings = list(re.finditer(r"[다요까죠음임]\s*[.!?]|[.!?]\s*['”’]?\s*$", text))
-    if endings and endings[-1].end() < len(text) - 1:
-        tail = text[endings[-1].end():]
-        if compact_length(tail) <= 80:
-            text = text[:endings[-1].end()].strip()
-    return text.strip(" ,·-")
+            title = H.unescape(t.group(1)).strip()
+            if not is_editorial(title):
+                continue
+            link = H.unescape(l.group(1)).strip()
+            m = re.search(r"[?&]url=([^&]+)", link)
+            real = urllib.parse.unquote(m.group(1)) if m else link
+            pub = None
+            if p:
+                try:
+                    pub = parsedate_to_datetime(p.group(1).strip())
+                    if pub.tzinfo is None:
+                        pub = pub.replace(tzinfo=timezone.utc)
+                    pub = pub.astimezone(KST)
+                except Exception:
+                    pub = None
+            if pub and TODAY - pub > timedelta(hours=MAX_AGE_H):
+                continue
+            if real in seen:
+                continue
+            seen.add(real)
+            out.append({"title": title, "url": real, "pub": pub.isoformat() if pub else None})
+        if len(out) >= PER_OUTLET_TRY * 2:
+            break
+        time.sleep(0.6)
+    return out
 
 
-SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+")
+# ─────────────────────────────────────────────────────────────
+# 본문 추출 (HTML 파서) + 광고/인쇄 등 UI 문구 제거
+# ─────────────────────────────────────────────────────────────
+def decode_page(url):
+    raw = fetch(url, 25)
+    for enc in ("utf-8", "euc-kr", "cp949"):
+        try:
+            return raw.decode(enc)
+        except UnicodeDecodeError:
+            continue
+    return raw.decode("utf-8", "replace")
 
 
-def split_sentences(text):
-    parts = []
-    for chunk in SENTENCE_SPLIT.split(text):
-        chunk = chunk.strip()
-        if chunk:
-            parts.append(chunk)
-    return parts
+def jsonld_body(d):
+    for m in re.finditer(r'"articleBody"\s*:\s*"((?:[^"\\]|\\.)*)"', d):
+        try:
+            txt = json.loads('"' + m.group(1) + '"')
+            if nospace(txt) > 300:
+                return txt
+        except Exception:
+            continue
+    return None
 
 
-def fit_length(text, limit=CHAR_LIMIT):
-    """규칙 1: 1100자를 넘으면 문장 경계에서만 자른다(문장 중간 절단 금지)."""
-    if compact_length(text) <= limit:
+GENERIC_MARKER = re.compile(
+    r"article[-_]?(?:body|txt|text|view|content)|art_body|news[-_]?body|news_body_area|"
+    r"news-view|plain_txt|txt_article|ab_paragraph|story[-_]?body", re.I)
+MARKERS = {  # 신문사별 본문 컨테이너(id/class) 패턴 — 없으면 GENERIC_MARKER
+    "chosun.com": re.compile(r"article-body|article_body", re.I),
+    "hani.co.kr": re.compile(r"article-text|article_text", re.I),
+    "donga.com": re.compile(r"article_txt", re.I),
+    "munhwa.com": re.compile(r"news_body_area|articlebody", re.I),
+    "mk.co.kr": re.compile(r"art_body|plain_txt|txt_article", re.I),
+    "hankyung.com": re.compile(r"news-view|article-body", re.I),
+    "segye.com": re.compile(r"article_body|articlebody", re.I),
+}
+
+SKIP_TAGS = {"script", "style", "noscript", "figure", "figcaption", "aside", "nav", "button",
+             "iframe", "ins", "form", "header", "footer", "select", "svg"}
+VOID_TAGS = {"br", "img", "hr", "input", "meta", "link", "source", "area", "base", "col",
+             "embed", "param", "track", "wbr"}
+BLOCK_TAGS = {"p", "div", "li", "tr", "section", "article", "blockquote",
+              "h1", "h2", "h3", "h4", "h5", "h6"}
+BAD_ATTR = re.compile(
+    r"(?:^|[-_\s])(?:ad|ads|adv|advert|advertisement|banner|share|sns|print|font|fontsize|related|"
+    r"reporter|byline|copyright|btn|button|comment|reply|recommend|subscribe|toolbar|social|"
+    r"promo|popular|ranking|taboola|dable|newsletter)(?:$|[-_\s\d])", re.I)
+
+
+class BodyGrabber(HTMLParser):
+    """marker 에 맞는 첫 요소의 하위 텍스트만 모은다 (중첩 태그 깊이 추적, 광고·버튼류는 건너뜀)."""
+
+    def __init__(self, marker):
+        super().__init__(convert_charrefs=True)
+        self.marker = marker
+        self.capturing = False
+        self.done = False
+        self.depth = 0
+        self.skip = 0
+        self.buf = []
+
+    @staticmethod
+    def _attr_text(attrs):
+        d = dict(attrs)
+        return f'{d.get("id") or ""} {d.get("class") or ""}'
+
+    def handle_starttag(self, tag, attrs):
+        if self.done:
+            return
+        a = self._attr_text(attrs)
+        if not self.capturing:
+            if tag not in VOID_TAGS and self.marker.search(a):
+                self.capturing, self.depth, self.skip = True, 1, 0
+            return
+        if tag in VOID_TAGS:
+            if tag == "br" and not self.skip:
+                self.buf.append("\n")
+            return
+        self.depth += 1
+        if self.skip:
+            self.skip += 1
+            return
+        if tag in SKIP_TAGS or BAD_ATTR.search(a):
+            self.skip = 1
+            return
+        if tag in BLOCK_TAGS:
+            self.buf.append("\n")
+
+    def handle_endtag(self, tag):
+        if not self.capturing or tag in VOID_TAGS:
+            return
+        if self.skip:
+            self.skip -= 1
+        elif tag in BLOCK_TAGS:
+            self.buf.append("\n")
+        self.depth -= 1
+        if self.depth <= 0:
+            self.capturing, self.done = False, True
+
+    def handle_data(self, data):
+        if self.capturing and not self.skip:
+            self.buf.append(data)
+
+
+NOISE = re.compile(
+    r"(www\.|https?://|ⓒ|©|Copyright|무단\s*전재|재배포|저작권|이메일|@[\w.-]+\.|"
+    r"입력\s*\d{4}|수정\s*\d{4}|\d{4}[.\-/]\d{1,2}[.\-/]\d{1,2}\s+\d{1,2}:\d{2}|구독하기|제보하기)", re.I)
+UI_WORDS = re.compile(
+    r"광고|인쇄|프린트|스크랩|글자\s*크기|글씨\s*크기|가\s*가|공유하기|공유|페이스북|트위터|엑스|카카오톡|"
+    r"카카오스토리|네이버|링크\s*복사|URL\s*복사|주소\s*복사|저장하기|기사\s*저장|댓글|구독|관련\s*기사|"
+    r"추천\s*기사|많이\s*본|뉴스레터|좋아요|본문\s*듣기|음성\s*듣기|번역|기사\s*목록|목록|닫기|더보기|"
+    r"이전\s*기사|다음\s*기사|바로가기|메일|복사|보내기", re.I)
+BYLINE = re.compile(r"((논설|선임|수석|전문|편집|객원)?위원|기자|특파원|주필|칼럼니스트|교수|대표)\s*$")
+CAPTION = re.compile(r"^\s*[\[(]?\s*(사진|그래픽|일러스트|이미지|자료|영상)\s*[=:/)\]]")
+
+
+def clean_text(raw, html_mode=False):
+    text = raw
+    if html_mode:
+        text = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", text, flags=re.S)
+        text = re.sub(r"<br\s*/?>", "\n", text)
+        text = re.sub(r"</(p|div)>", "\n", text)
+        text = H.unescape(re.sub(r"<[^>]+>", "", text))
+    lines = []
+    for ln in (re.sub(r"[ \t\u00a0\u3000]+", " ", l).strip() for l in text.split("\n")):
+        if not ln or len(ln) <= 1:
+            continue
+        if NOISE.search(ln):
+            continue
+        if ln.startswith(("▲", "▶", "※", "◆", "■", "→", "-", "☞", "▷", "◇")):
+            continue
+        if CAPTION.search(ln):
+            continue
+        if len(ln) <= 40:
+            rest = UI_WORDS.sub("", ln)
+            if len(re.sub(r"[\W\d_]", "", rest)) <= 2:          # 'UI 단어'만으로 된 줄
+                continue
+            if len(ln) <= 25 and BYLINE.search(ln) and not re.search(r"[.!?다]$", ln):
+                continue                                        # '홍길동 논설위원' 류
+        if re.fullmatch(r"[\s\d\W]*", ln):
+            continue
+        lines.append(ln)
+    return "\n".join(lines).strip()
+
+
+def extract_text(url, base_domain):
+    try:
+        if not re.search(rf"https?://(www\.)?([a-z0-9-]+\.)*{re.escape(base_domain)}(/|$)", url):
+            return None
+        d = decode_page(url)
+        jb = jsonld_body(d)
+        if jb:
+            txt = clean_text(jb, html_mode=bool(re.search(r"</?(p|br|div|span)\b", jb)))
+            if nospace(txt) > 300:
+                return txt
+        for mk in (MARKERS.get(base_domain), GENERIC_MARKER):
+            if not mk:
+                continue
+            g = BodyGrabber(mk)
+            try:
+                g.feed(d)
+                g.close()
+            except Exception:
+                pass
+            txt = clean_text("".join(g.buf))
+            if nospace(txt) > 300:
+                return txt
+        paras = [p for p in re.findall(r"<p[^>]*>(.*?)</p>", d, re.S)
+                 if len(re.sub(r"<[^>]+>|\s", "", p)) > 30]
+        if paras:
+            txt = clean_text("\n".join(paras), html_mode=True)
+            if nospace(txt) > 300:
+                return txt
+        return None
+    except Exception:
+        return None
+
+
+# ─────────────────────────────────────────────────────────────
+# 길이 맞춤: 700 ≤ 공백제외 글자수 < 1,100 (초과분은 문장 단위로 자동발췌)
+# ─────────────────────────────────────────────────────────────
+SENT_SPLIT = re.compile(r"(?<=[.!?])\s+|(?<=[.!?][\"”’'」)])\s+")
+
+
+def fit_length(text):
+    """returns (본문, 발췌여부). 700자 미만이면 (None, False)."""
+    total = nospace(text)
+    if total < MIN_CHARS:
+        return None, False
+    if total < MAX_EXCL:
         return text, False
-    kept, total = [], 0
-    for sentence in split_sentences(text):
-        size = compact_length(sentence)
-        if total + size > limit:
+    out, used, stopped = [], 0, False
+    for para in text.split("\n"):
+        cur = []
+        for s in SENT_SPLIT.split(para):
+            n = nospace(s)
+            if used + n > EXCERPT_CAP:
+                stopped = True
+                break
+            cur.append(s)
+            used += n
+        if cur:
+            out.append(" ".join(cur))
+        if stopped:
             break
-        kept.append(sentence)
-        total += size
-    if not kept:
-        return "", True
-    trimmed = " ".join(kept).rstrip(" ,·-")
-    if not re.search(r"[.!?다요]$", trimmed):
-        trimmed = re.sub(r"[\s,·-]+$", "", trimmed)
-    return trimmed, True
+    res = "\n".join(out).strip()
+    return (res, True) if MIN_CHARS <= nospace(res) < MAX_EXCL else (None, False)
 
 
-def strip_editorial_tag(title):
-    title = normalize_text(title)
-    title = re.sub(r"^\s*[\[\(]?\s*사설\s*[\]\)]?\s*", "", title)
-    title = re.sub(r"\s*[\[\(]?\s*사설\s*[\]\)]?\s*$", "", title)
-    title = re.sub(r"\s*\[?\s*사설\s*\]?\s*", " ", title)
-    return re.sub(r"\s{2,}", " ", title).strip()
+# ─────────────────────────────────────────────────────────────
+# 중복(과거) / 주제 중복(당일) 판정
+# ─────────────────────────────────────────────────────────────
+TRACK_PARAMS = ("fbclid", "gclid", "ref", "from", "cmpid")
 
 
-
-# ---------------------------------------------------------------- 주제 사전
-# 반복되는 사설 주제를 명시적으로 묶는다(규칙 2). 필요하면 여기에 한 줄씩 추가하면 된다.
-TOPIC_RULES = [
-    ("수능·AI부정", ["수능", "커닝", "부정행위", "국가시험", "시험지", "감독관"]),
-    ("계엄·내란·한덕수", ["한덕수", "내란", "계엄", "파기환송", "추경호"]),
-    ("민주유공자법", ["민주유공자"]),
-    ("한중FTA·한한령", ["한한령", "한중", "한·중", "FTA", "서비스·투자"]),
-    ("수출1조달러", ["1조달러", "1조 달러", "수출"]),
-    ("사관학교통합", ["사관학교", "육사"]),
-    ("대법원장탄핵", ["대법원장"]),
-    ("증시·코스피", ["코스피", "증안펀드", "증시", "주가", "주식시장"]),
-    ("외교안보라인·개각", ["개각", "외교안보", "외교·안보", "외교안보라인"]),
-    ("정년연장", ["정년"]),
-    ("전기차·세액공제", ["전기차", "세액공제"]),
-    ("새만금공항·SOC", ["새만금", "SOC"]),
-    ("미중러·국제질서", ["미·중·러", "미중러", "국제질서", "강대국"]),
-    ("성장률·경제전망", ["KDI", "성장률", "성장 전망"]),
-    ("프런티어AI", ["앤스로픽", "프런티어"]),
-    ("김민석·여당내분", ["김민석"]),
-    ("기업수사·기소", ["기소", "무죄", "수사"]),
-]
+def norm_url(u):
+    p = urllib.parse.urlsplit(u)
+    host = p.netloc.lower()
+    host = host[4:] if host.startswith("www.") else host
+    q = sorted((k, v) for k, v in urllib.parse.parse_qsl(p.query)
+               if not k.lower().startswith("utm_") and k.lower() not in TRACK_PARAMS)
+    return host + p.path.rstrip("/") + ("?" + urllib.parse.urlencode(q) if q else "")
 
 
-def topic_label(item):
-    text = (item.get("제목", "") + " " + item.get("본문", "")[:400])
-    best, best_hits = "", 0
-    for label, keywords in TOPIC_RULES:
-        hits = sum(1 for keyword in keywords if keyword in text)
-        if hits > best_hits:
-            best, best_hits = label, hits
-    return best
-
-# ---------------------------------------------------------------- 주제 클러스터
-STOPWORDS = set("""
-사설 오늘 이번 지난 우리나라 우리 정부 국민 정치 사회 경제 대한 위한 관련 이라며 이라고 한다
-있는 없다 모두 이제 다시 여전히 매우 아주 가장 또 및 그리고 하지만 그러나 그런데 이날 같은
-""".split())
+def title_key(t):
+    return re.sub(r"[^0-9a-z가-힣]", "", clean_title(t).lower())
 
 
-def title_tokens(title):
-    text = re.sub(r"^\s*\[[^\]]{2,10}\]\s*", "", title or "")
-    text = strip_editorial_tag(text)
-    text = re.sub(r"[^가-힣A-Za-z0-9]", " ", text)
-    tokens = []
-    for word in text.split():
-        if len(word) < 2 or word in STOPWORDS:
+def body_key(text):
+    return re.sub(r"[^0-9a-z가-힣]", "", (text or "").lower())[:60]
+
+
+def load_history():
+    urls, titles, bodies = set(), set(), set()
+    today_file = f"{TODAY.strftime('%Y-%m-%d')}.json"
+    for f in glob(os.path.join(DATA_DIR, "*.json")):
+        if os.path.basename(f) == today_file:      # 같은 날 재실행 시 덮어쓰기 허용
             continue
-        tokens.append(word)
-    return set(tokens)
-
-
-def jaccard(a, b):
-    if not a or not b:
-        return 0.0
-    return len(a & b) / len(a | b)
-
-
-def body_signature(body, k=80):
-    text = re.sub(r"[^가-힣A-Za-z0-9]", "", body or "")
-    return {text[i:i + 3] for i in range(0, max(0, len(text) - k), 3)}
-
-
-def char_grams(text, n=2):
-    text = re.sub(r"[^가-힣A-Za-z0-9]", "", text or "")
-    return {text[i:i + n] for i in range(0, max(0, len(text) - n + 1))}
-
-
-def same_topic(a, b, threshold=0.18):
-    if jaccard(title_tokens(a["제목"]), title_tokens(b["제목"])) >= threshold:
-        return True
-    if jaccard(char_grams(a["제목"]), char_grams(b["제목"])) >= 0.34:
-        return True
-    sa, sb = body_signature(a["본문"]), body_signature(b["본문"])
-    if not sa or not sb:
-        return False
-    overlap = len(sa & sb) / min(len(sa), len(sb))
-    return overlap >= 0.42
-
-
-def assign_clusters(items, threshold=0.22):
-    clusters = []
-    for item in items:
-        placed = False
-        for cluster in clusters:
-            if any(same_topic(item, member, threshold) for member in cluster):
-                cluster.append(item)
-                item["topic_id"] = clusters.index(cluster) + 1
-                placed = True
-                break
-        if not placed:
-            clusters.append([item])
-            item["topic_id"] = len(clusters)
-    return clusters
-
-
-# ---------------------------------------------------------------- 수집 파이프라인
-def parse_pubdate(value):
-    for fmt in ("%a, %d %b %Y %H:%M:%S %z", "%a, %d %b %Y %H:%M:%S %Z"):
         try:
-            dt = datetime.strptime(value, fmt)
-            if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=KST)
-            return dt.astimezone(KST)
-        except (ValueError, TypeError):
+            with open(f, encoding="utf-8") as fh:
+                j = json.load(fh)
+        except Exception:
             continue
-    return None
+        for p in j.get("picked", []):
+            if p.get("url"):
+                urls.add(norm_url(p["url"]))
+            if p.get("title"):
+                titles.add(title_key(p["title"]))
+            if p.get("body"):
+                bodies.add(body_key(p["body"]))
+    return {"urls": urls, "titles": titles, "bodies": bodies}
 
 
-def url_date(url):
-    match = re.search(r"/(20\d{2})(\d{2})(\d{2})/", url) or re.search(r"/(20\d{2})-(\d{2})-(\d{2})/", url)
-    if match:
-        try:
-            return datetime(int(match.group(1)), int(match.group(2)), int(match.group(3)), tzinfo=KST)
-        except ValueError:
-            return None
-    match = re.search(r"article/(20\d{2})(\d{2})(\d{2})", url)
-    if match:
-        try:
-            return datetime(int(match.group(1)), int(match.group(2)), int(match.group(3)), tzinfo=KST)
-        except ValueError:
-            return None
-    return None
+JOSA = re.compile(r"(으로써|으로서|에서는|에게는|이라는|이라고|으로|에서|에게|까지|부터|처럼|보다|마저|조차|"
+                  r"라는|라고|이다|은|는|이|가|을|를|의|에|도|로|과|와|만|들)$")
+STOP = set("그리고 하지만 그러나 이번 최근 지난 대한 위해 통해 따라 이후 이런 이는 있는 있다 한다 했다 하는 "
+           "것이 것은 우리 정부 국민 사회 한국 대통령 때문 경우 가운데 대해 관련 지금 현재 올해 내년 "
+           "필요 문제 상황 사실 결과 위한 같은 모든 다른 여러 어떤 이미 아직 오히려 특히 또한".split())
 
 
-def gather(window_days, reference_date, verbose=True):
-    start = reference_date - timedelta(days=window_days)
-    end = reference_date + timedelta(days=1)
-    pool, log = [], []
-    for index, (outlet, domain) in enumerate(OUTLETS, start=1):
-        try:
-            rss_url, items = bing_items(domain)
-        except Exception as error:
-            rss_url, items = "", []
-            log.append({"outlet": outlet, "stage": "rss", "error": f"{type(error).__name__}: {error}"})
-        if len(items) < 3:
-            try:
-                lp_url, extra = list_page_items(domain)
-                known = {i["url"] for i in items}
-                items.extend([x for x in extra if x["url"] not in known])
-            except Exception as error:
-                log.append({"outlet": outlet, "stage": "list", "error": f"{type(error).__name__}: {error}"})
-        kept = 0
-        for item in items:
-            # 사설만: 제목에 '사설' 표기가 있는 기사로 한정(칼럼·기사·어린이동아 등 배제)
-            if "사설" not in item["title"]:
-                continue
-            if any(marker in item["title"] for marker in COLUMN_MARKERS):
-                continue
-            published = parse_pubdate(item.get("published", "")) or url_date(item["url"])
-            if published and not (start <= published <= end):
-                continue
-            try:
-                _, page, final_url = fetch(item["url"])
-            except Exception as error:
-                log.append({"outlet": outlet, "stage": "fetch", "url": item["url"],
-                            "error": f"{type(error).__name__}: {error}"})
-                continue
-            body, method = "", "none"
-            try:
-                body, method = extract_json_ld_body(page), "json-ld"
-                if compact_length(body) < MIN_CHARS:
-                    body, method = "", "none"
-                if not body:
-                    body = clean_body(extract_outlet_selector(page, domain))
-                    method = "selector"
-                if compact_length(body) < MIN_CHARS:
-                    body = clean_body(extract_paragraph_cluster(page))
-                    method = "paragraph-cluster"
-            except Exception as error:
-                log.append({"outlet": outlet, "stage": "extract", "url": item["url"],
-                            "error": f"{type(error).__name__}: {error}"})
-                continue
-            body = clean_body(body)
-            if compact_length(body) < MIN_CHARS:
-                continue
-            fitted, truncated = fit_length(body)
-            if compact_length(fitted) < MIN_CHARS:
-                continue
-            pool.append({
-                "신문사명": outlet,
-                "원제목": normalize_text(item["title"]),
-                "제목": f"[{outlet}] {strip_editorial_tag(item['title'])}",
-                "원문 URL": final_url,
-                "발행일": published.strftime("%Y-%m-%d") if published else "",
-                "본문": fitted,
-                "공백 제외 자수": compact_length(fitted),
-                "원문 자수": compact_length(body),
-                "1100자 초과 정리": truncated,
-                "추출 방식": method,
-            })
-            kept += 1
-            if kept >= 4:
-                break
-        if verbose:
-            print(f"[{index:02d}/{len(OUTLETS)}] {outlet}: 후보 {len(items)}건 중 {kept}건 확보", flush=True)
-    assign_clusters(pool)
-    for item in pool:
-        item["주제"] = topic_label(item) or f"기타-{item['topic_id']}"
-    return pool, log
+def tokens(text):
+    out = []
+    for w in re.findall(r"[가-힣]{2,}", text or ""):
+        w2 = JOSA.sub("", w) if len(w) > 2 else w
+        if len(w2) >= 2 and w2 not in STOP:
+            out.append(w2)
+    return out
 
 
-def select(pool, target=TARGET_COUNT):
-    """규칙 2·3·5: 주제·신문사 중복 없이 10편. 부족하면 단계적으로 완화."""
-    ranked = sorted(pool, key=lambda x: (-min(x["공백 제외 자수"], CHAR_LIMIT), x["발행일"]), reverse=False)
-    ranked = sorted(pool, key=lambda x: (x["공백 제외 자수"] < 400, -x["공백 제외 자수"], x["발행일"]), reverse=True)
-    selected, outlets, topics = [], set(), set()
-    for item in ranked:
-        if len(selected) >= target:
+def topic_profile(title, body):
+    return set(tokens(title)), {w for w, _ in Counter(tokens(body)).most_common(25)}
+
+
+def same_topic(a, b):
+    """제목 핵심어 3개 이상 공유 / 제목 Jaccard ≥ .34 / 본문 상위 키워드 Jaccard ≥ .30 이면 같은 주제."""
+    ta, ka = a
+    tb, kb = b
+    jt = len(ta & tb) / max(1, len(ta | tb))
+    jk = len(ka & kb) / max(1, len(ka | kb))
+    return len(ta & tb) >= 3 or jt >= 0.34 or jk >= 0.30
+
+
+# ─────────────────────────────────────────────────────────────
+def collect_outlet(name, domain, hist):
+    cands = []
+    for c in bing_items(domain):
+        if len(cands) >= PER_OUTLET_TRY:
             break
-        if item["신문사명"] in outlets or item["주제"] in topics:
+        if norm_url(c["url"]) in hist["urls"] or title_key(c["title"]) in hist["titles"]:
             continue
-        selected.append(item)
-        outlets.add(item["신문사명"])
-        topics.add(item["주제"])
-    stage = 1
-    # 1차 완화: 주제 중복 허용, 신문사 중복 금지
-    if len(selected) < target:
-        stage = 2
-        for item in ranked:
-            if len(selected) >= target:
-                break
-            if item in selected or item["신문사명"] in outlets:
-                continue
-            selected.append(item)
-            outlets.add(item["신문사명"])
-    # 2차 완화: 신문사 중복까지 허용(같은 신문사 다른 주제만)
-    if len(selected) < target:
-        stage = 3
-        for item in ranked:
-            if len(selected) >= target:
-                break
-            if item in selected:
-                continue
-            if item["주제"] in {s["주제"] for s in selected}:
-                continue
-            selected.append(item)
-    return selected, stage
+        txt = extract_text(c["url"], domain)
+        if not txt:
+            continue
+        txt = strip_annotations(txt)
+        orig = nospace(txt)
+        fitted, excerpted = fit_length(txt)
+        if not fitted or body_key(fitted) in hist["bodies"]:
+            continue
+        ctitle = clean_title(c["title"])
+        cands.append({
+            "outlet": name, "url": c["url"], "pub": c["pub"],
+            "title_full": with_outlet(name, c["title"]),
+            "text": fitted, "chars": nospace(fitted), "orig_chars": orig,
+            "excerpted": excerpted, "profile": topic_profile(ctitle, fitted),
+        })
+        time.sleep(0.5)
+    cands.sort(key=lambda x: (x["excerpted"], abs(x["chars"] - TARGET_CHARS)))   # 발췌 없는 것 우선
+    return cands
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--date", default=datetime.now(KST).strftime("%Y-%m-%d"))
-    parser.add_argument("--window", type=int, default=2)
-    parser.add_argument("--out-dir", default="/home/user/output")
-    parser.add_argument("--dump-pool", action="store_true")
-    parser.add_argument("--reuse-pool", action="store_true")
-    parser.add_argument("--recluster", action="store_true")
-    args = parser.parse_args()
+    print(f"=== 소담 사설 수집 v5 {TODAY.strftime('%Y-%m-%d %H:%M')} KST ===")
+    hist = load_history()
+    print(f"과거 수집분: URL {len(hist['urls'])}건 / 제목 {len(hist['titles'])}건")
 
-    reference = datetime.strptime(args.date, "%Y-%m-%d").replace(tzinfo=KST)
-    pool_path = os.path.join(args.out_dir, f"pool-{args.date}.json")
-    if args.reuse_pool and os.path.exists(pool_path):
-        pool = json.load(open(pool_path, encoding="utf-8"))
-        log = []
-        for item in pool:
-            item["주제"] = topic_label(item) or f"기타-{item['topic_id']}"
-        print(f"[cache] {pool_path} 재사용 ({len(pool)}건)", flush=True)
-    else:
-        pool, log = gather(args.window, reference)
-        os.makedirs(args.out_dir, exist_ok=True)
-        with open(pool_path, "w", encoding="utf-8") as handle:
-            json.dump(pool, handle, ensure_ascii=False, indent=1)
-    selected, stage = select(pool)
+    order = list(OUTLETS.items())
+    random.Random(TODAY.strftime("%Y%m%d")).shuffle(order)      # 신문사 순서 편향 제거
 
-    os.makedirs(args.out_dir, exist_ok=True)
-    if args.dump_pool:
-        with open(os.path.join(args.out_dir, "pool.json"), "w", encoding="utf-8") as handle:
-            json.dump(pool, handle, ensure_ascii=False, indent=1)
+    chosen, topic_skipped = [], 0
+    for name, domain in order:
+        if len(chosen) >= PICK:
+            break
+        for c in collect_outlet(name, domain, hist):
+            if any(same_topic(c["profile"], x["profile"]) for x in chosen):
+                topic_skipped += 1
+                continue
+            chosen.append(c)                                    # 신문사당 1편
+            break
+        time.sleep(1.0)
 
-    payload = {
-        "date": args.date,
-        "generated_at_kst": datetime.now(KST).isoformat(),
-        "rules": {
-            "char_limit_no_space": CHAR_LIMIT,
-            "min_chars": MIN_CHARS,
-            "target_count": TARGET_COUNT,
-            "topic_dedup": True,
-            "outlet_dedup": True,
-        },
-        "topic_clusters": len({item["topic_id"] for item in pool}),
-        "picked": [
-            {
-                "신문사명": item["신문사명"],
-                "제목": item["제목"],
-                "공백 제외 자수": item["공백 제외 자수"],
-                "원문 자수": item["원문 자수"],
-                "1100자 초과 정리": item["1100자 초과 정리"],
-                "주제 클러스터": item["주제"],
-                "발행일": item["발행일"],
-                "원문 URL": item["원문 URL"],
-                "본문": item["본문"],
-            }
-            for item in selected
-        ],
-        "collection_log": log,
+    chosen.sort(key=lambda x: x["chars"])                       # 길이 오름차순 1~10번
+    os.makedirs(DATA_DIR, exist_ok=True)
+    out_path = os.path.join(DATA_DIR, f"{TODAY.strftime('%Y-%m-%d')}.json")
+    picked = []
+    for i, p in enumerate(chosen, 1):
+        n = p["chars"]
+        picked.append({
+            "no": i,
+            "date": TODAY.strftime("%Y-%m-%d"),
+            "title": p["title_full"],
+            "src": p["outlet"],
+            "chars": n,
+            "orig_chars": p["orig_chars"],
+            "excerpted": p["excerpted"],
+            "lv": 1 if n <= 850 else (2 if n <= 1000 else 3),
+            "pub": p["pub"],
+            "url": p["url"],
+            "body": p["text"],
+        })
+    out = {
+        "date": TODAY.strftime("%Y-%m-%d"),
+        "criteria": "700~1,099자(공백 제외) · 초과분은 문장 단위 자동발췌 · 과거 수집분/동일 주제/동일 신문사 제외 · 길이 오름차순 1~10번",
+        "picked": picked,
+        "summary": [{"no": p["no"], "outlet": p["src"], "title": p["title"], "chars": p["chars"],
+                     "excerpted": p["excerpted"], "url": p["url"]} for p in picked],
     }
-    out_path = os.path.join(args.out_dir, f"{args.date}.json")
-    with open(out_path, "w", encoding="utf-8") as handle:
-        json.dump(payload["picked"], handle, ensure_ascii=False, indent=2)
-        handle.write("\n")
-    with open(os.path.join(args.out_dir, f"sodam-editorials-{args.date}.json"), "w", encoding="utf-8") as handle:
-        json.dump(payload, handle, ensure_ascii=False, indent=2)
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(out, f, ensure_ascii=False, indent=1)
 
-    lines = [f"# 소담 사설 브리핑 — {args.date}", "",
-             f"**{len(selected)}편** · **{len({i['신문사명'] for i in selected})}개 신문사** · "
-             f"**{len({i['주제'] for i in selected})}개 주제**", "",
-             "| # | 신문사 | 제목 | 자수 | 원문 |", "|---:|---|---|---:|---|"]
-    for idx, item in enumerate(selected, start=1):
-        lines.append(f"| {idx} | {item['신문사명']} | {item['제목'].replace('|', '\\|')} | "
-                     f"{item['공백 제외 자수']} | [원문]({item['원문 URL']}) |")
-    lines.append("")
-    for idx, item in enumerate(selected, start=1):
-        lines.extend([f"## {idx}. {item['제목']}", "",
-                      f"- 자수(공백 제외): {item['공백 제외 자수']}자"
-                      + (" (1100자 초과 → 문장 단위 정리)" if item["1100자 초과 정리"] else ""),
-                      f"- 원문: {item['원문 URL']}", "", item["본문"], ""])
-    with open(os.path.join(args.out_dir, f"{args.date}.md"), "w", encoding="utf-8") as handle:
-        handle.write("\n".join(lines) + "\n")
-
-    print(json.dumps({
-        "date": args.date,
-        "picked": len(selected),
-        "outlets": [i["신문사명"] for i in selected],
-        "topics": [i["주제"] for i in selected],
-        "lengths": [i["공백 제외 자수"] for i in selected],
-        "truncated": sum(1 for i in selected if i["1100자 초과 정리"]),
-        "pool": len(pool),
-        "stage": stage,
-        "out": out_path,
-    }, ensure_ascii=False, indent=2))
-    return 0 if len(selected) >= TARGET_COUNT else 2
+    for p in picked:
+        tag = f' (발췌, 원문 {p["orig_chars"]}자)' if p["excerpted"] else ""
+        print(f'{p["no"]:>2}. [{p["src"]}] {p["chars"]}자{tag} | {p["title"][:60]}')
+    print(f"\n최종 {len(picked)}편 / 주제 중복으로 건너뜀 {topic_skipped}건")
+    if len(picked) < PICK:
+        print(f"⚠ 조건을 만족하는 사설이 {PICK}편에 못 미칩니다 ({len(picked)}편). 로그의 bing err를 확인하세요.",
+              file=sys.stderr)
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
