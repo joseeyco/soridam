@@ -7,10 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@500;700;900&family=IBM+Plex+Sans+KR:wght@400;500;700&family=Nanum+Gothic+Coding:wght@400;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
-
 :root{
-
-
   --bg:#FCFCFD;
   --panel:#FFFFFF;
   --ink:#6A6C70;
@@ -37,7 +34,6 @@
 body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.65;overflow-x:hidden}html{overflow-x:hidden}
 button{font-family:inherit;cursor:pointer}
 :focus-visible{outline:2px solid var(--brand);outline-offset:2px}
-
 /* ── 헤더 ─────────────────── */
 .topbar{background:#fff;border-bottom:1px solid var(--line);font-size:12.5px;color:var(--ink-soft)}
 .topbar .wrap{display:flex;justify-content:flex-end;gap:16px;padding:6px 20px}
@@ -51,7 +47,6 @@ header.site{background:#fff;border-bottom:1px solid var(--line)}
 .user-chip{margin-left:auto;font-size:12.5px;color:var(--ink-mid);display:flex;gap:8px;align-items:center}
 .user-chip .badge{font-size:11px}
 .date-chip{font-family:var(--num);font-size:12px;color:var(--ink-soft)}
-
 /* ── 3단 레이아웃: 좌메뉴 · 본문 · 우목록 ─────────────────── */
 .shell{max-width:1240px;margin:0 auto;padding:22px 20px 60px;display:grid;grid-template-columns:180px 1fr;gap:26px}
 @media(max-width:860px){.shell{grid-template-columns:1fr}}
@@ -73,7 +68,6 @@ main.content{min-width:0}
 .rail .d{display:block;font-family:var(--num);font-size:11px;color:var(--ink-soft);font-weight:400;margin-top:2px}
 .page{display:none}
 .page.show{display:block}
-
 /* ── 목록(게시판) ─────────────────── */
 .board-head{margin-bottom:16px}
 .board-head h1{font-family:var(--sans);font-weight:700;font-size:21px;letter-spacing:-.4px;color:var(--title)}
@@ -96,7 +90,6 @@ table.board td.date{width:105px;text-align:center;font-family:var(--num);color:v
 .pager{display:flex;gap:4px}
 .pager button{border:1px solid var(--line);background:#fff;padding:5px 11px;font-size:13px;font-weight:500;color:var(--ink-soft);border-radius:4px}
 .pager button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
-
 /* ── 상세 ─────────────────── */
 .breadcrumb{font-size:12.5px;color:var(--ink-soft);margin-bottom:12px}
 .breadcrumb b{color:var(--ink)}
@@ -118,7 +111,6 @@ table.board td.date{width:105px;text-align:center;font-family:var(--num);color:v
 .art-meta b{color:var(--ink)}
 .btn-back{border:1px solid var(--line-strong);background:#fff;color:var(--ink-soft);font-size:12.5px;font-weight:500;padding:6px 14px;border-radius:5px;flex:0 0 auto}
 .btn-back:hover{border-color:var(--brand);color:var(--brand)}
-
 /* 설정 */
 .settings{background:#fff;border:1px solid var(--line);border-radius:8px;margin-top:12px;padding:15px 22px}
 .settings h2{font-family:var(--disp);font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:12px;color:var(--ink-mid)}
@@ -144,13 +136,11 @@ table.board td.date{width:105px;text-align:center;font-family:var(--num);color:v
 .spd-select{font-family:var(--sans);font-size:13.5px;font-weight:700;color:var(--ink-mid);border:1.5px solid var(--line-strong);border-radius:5px;padding:8px 10px;background:#fff}
 .char-note{font-size:11.5px;color:var(--ink-soft)}
 .char-note b{color:var(--brand);font-family:var(--num)}
-
 /* 연습 카드 */
 .practice-card{background:#fff;border:1px solid var(--line);border-radius:8px;margin-top:12px;padding:18px 22px;display:flex;flex-direction:column;gap:14px}
 .tabs{display:flex;gap:4px}
 .tabs button{padding:9px 26px;font-family:var(--disp);font-weight:500;font-size:14px;background:#fff;border:1.5px solid var(--line-strong);border-radius:6px;color:var(--ink-soft)}
 .tabs button.on{background:var(--brand);border-color:var(--brand);color:#fff}
-
 /* ── 프롬프트(원문) 노출 영역: 타이핑칸 바로 위 ─────────────────── */
 .prompt-wrap{display:flex;flex-direction:column;gap:10px}
 .prompt-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -178,7 +168,6 @@ table.board td.date{width:105px;text-align:center;font-family:var(--num);color:v
 .p-time b.warn{color:var(--rose)}
 .p-bar{flex:1;min-width:140px;height:7px;background:#fff;border:1px solid var(--brand-line);border-radius:4px;overflow:hidden}
 .p-bar i{display:block;height:100%;width:0%;background:var(--brand);transition:width .15s linear}
-
 .tabs-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 .tabs-row .player{flex:1;min-width:300px}
 /* 입력 + 채점 */
@@ -201,7 +190,6 @@ button.guarded:hover{filter:none}
 .stats-row b{color:var(--brand);font-family:var(--num)}
 .type-hint{font-size:12px;color:var(--ink-soft)}
 .type-hint b{color:var(--ok)}
-
 /* 채점 결과 */
 .grading{display:none;flex-direction:column;gap:12px;border:1px solid var(--line);border-radius:8px;padding:16px;background:#FBFBFC}
 .grading.show{display:flex}
@@ -229,7 +217,6 @@ button.guarded:hover{filter:none}
 .diffbox .d-t{color:#6C7C8C;font-weight:700}
 .diffbox .d-c{color:#78897C;font-weight:700;text-decoration:line-through}
 .gnote{font-size:12px;color:var(--ink-soft)}
-
 /* 틀린문장 다시치기 (전체지문 채점 후에만 표시) */
 .retry{display:none;flex-direction:column;gap:10px;border:1px dashed var(--line-strong);border-radius:8px;padding:14px;background:#fff}
 .retry h4{font-family:var(--disp);font-size:13.5px;color:var(--ink-mid)}
@@ -261,7 +248,6 @@ button.guarded:hover{filter:none}
 .aw .awc{font-size:16px;font-weight:700}
 .aw b{color:var(--brand);font-family:var(--sans);font-weight:700;margin-left:2px}
 .retry-diff{font-family:'IBM Plex Mono',sans-serif;font-weight:600;font-size:17px;line-height:1.9;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px 12px;white-space:pre-wrap;word-break:break-all;max-height:220px;overflow:auto}
-
 /* 듣고치기 */
 .hear-body{display:flex;flex-direction:column;gap:14px}
 .note{font-size:12px;color:var(--ink-soft);background:var(--brand-soft);border-left:3px solid var(--brand);padding:8px 12px;line-height:1.55;border-radius:0 5px 5px 0}
@@ -269,10 +255,8 @@ button.guarded:hover{filter:none}
 .chip{border:1px solid var(--line-strong);background:#fff;padding:7px 14px;font-size:12.5px;font-weight:500;border-radius:5px;color:var(--ink-mid)}
 .chip.on{background:var(--brand-soft);border-color:var(--brand);color:var(--brand)}
 .hear-note-box{font-family:var(--mono);font-size:15px;line-height:1.9;letter-spacing:.5px;background:var(--bg);border:1px dashed var(--line-strong);border-radius:6px;padding:12px 14px;color:var(--ink-soft);min-height:70px}
-
 footer{border-top:1px solid var(--line);background:#fff;color:var(--ink-soft);padding:22px 20px;font-size:12.5px}
 .foot-in{max-width:1240px;margin:0 auto;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
-
 /* ── 모바일: 좌·우 서랍 메뉴 ── */
 .nav-toggle{display:none;background:var(--panel);border:1.5px solid var(--line-strong);color:var(--ink-mid);font-weight:700;font-size:13px;padding:8px 14px;border-radius:6px}
 .nav-toggle:hover{border-color:var(--brand);color:var(--brand)}
@@ -284,9 +268,7 @@ footer{border-top:1px solid var(--line);background:#fff;color:var(--ink-soft);pa
   aside.side.open{transform:none}
   .backdrop.show{display:block}
 }
-
 /* ── 원문 바로보기 ── */
-
 /* ── 테스트 시작 버튼 + 원문 전체보기 + 줄 수 창 크기 ── */
 .pctrl.play-wide{width:auto;flex:0 0 auto;border-radius:21px;padding:0 18px;font-size:13px;font-weight:700;letter-spacing:.2px}
 .fullview{position:fixed;inset:0;background:rgba(74,79,87,.35);z-index:80;display:none;align-items:center;justify-content:center;padding:24px}
@@ -313,7 +295,6 @@ table.board td.date{white-space:nowrap}
 .chip[disabled]{opacity:.45;cursor:default}
 .empty{background:#fff;border:1px dashed var(--line-strong);border-radius:8px;padding:34px 20px;text-align:center;color:var(--ink-soft);font-size:13.5px;line-height:1.8}
 .empty b{display:block;font-family:var(--disp);font-size:15px;color:var(--ink-mid);margin-bottom:4px}
-
 /* ── 막대 차트 ─────────────────── */
 .bars{display:flex;flex-direction:column;gap:6px}
 .bar-row{display:flex;align-items:center;gap:10px;font-size:12.5px}
@@ -331,7 +312,6 @@ table.board td.date{white-space:nowrap}
 .chart-card .desc{font-size:11.5px;color:var(--ink-soft);margin-bottom:12px;line-height:1.6}
 .chart-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media(max-width:760px){.chart-2{grid-template-columns:1fr}}
-
 /* ── 우측 레일 ─────────────────── */
 .rail-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .rail-head h4{margin:0;flex:1}
@@ -349,7 +329,6 @@ table.board td.date{white-space:nowrap}
 .rail-stat b{font-family:var(--num);color:var(--brand)}
 .rail-stat:last-child{border-bottom:0}
 /* 우측 레일: 세로 스크롤 제거 — 목록이 화면 흐름에 따라 자연 확장됩니다 */
-
 /* ── 폼 ─────────────────── */
 .form-grid{display:flex;flex-direction:column;gap:12px}
 .form-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
@@ -359,7 +338,6 @@ table.board td.date{white-space:nowrap}
 .form-row .hint{flex-basis:100%;font-size:11.5px;color:var(--ink-soft);margin-top:-4px}
 textarea.inp{min-height:74px;resize:vertical;line-height:1.7}
 select.inp{font-weight:500}
-
 /* ── 낭독 테스트 ─────────────────── */
 .tts-quote{font-family:var(--mono);font-weight:600;font-size:16px;line-height:1.95;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:14px 16px;white-space:pre-wrap;word-break:break-all}
 .tts-quote .mask{color:transparent;text-shadow:0 0 9px rgba(87,76,58,.32);user-select:none}
@@ -373,7 +351,6 @@ select.inp{font-weight:500}
 .range{-webkit-appearance:none;appearance:none;width:150px;height:4px;background:var(--line-strong);border-radius:3px;outline:none}
 .range::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--brand);cursor:pointer}
 .range::-moz-range-thumb{width:16px;height:16px;border:0;border-radius:50%;background:var(--brand);cursor:pointer}
-
 /* ── 단어장 ─────────────────── */
 .vlist{display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden}
 .vitem{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
@@ -387,7 +364,6 @@ select.inp{font-weight:500}
 .icon-btn{border:1px solid var(--line-strong);background:#fff;color:var(--ink-soft);width:28px;height:28px;border-radius:5px;font-size:13px;line-height:1;padding:0}
 .icon-btn:hover{border-color:var(--rose);color:var(--rose)}
 .chip.mini{padding:4px 10px;font-size:11.5px}
-
 /* ── 반응형: 표 → 카드 ─────────────────── */
 @media(max-width:700px){
   table.board thead{display:none}
@@ -410,7 +386,6 @@ select.inp{font-weight:500}
   .board-foot{flex-direction:column;align-items:flex-start;gap:10px}
   .pager{flex-wrap:wrap}
 }
-
 /* ── 반응형: 필터·KPI ─────────────────── */
 @media(max-width:700px){
   .kpi-row{grid-template-columns:repeat(2,1fr)}
@@ -419,7 +394,6 @@ select.inp{font-weight:500}
   .form-row>label{width:100%;flex:0 0 100%}
   .form-row .inp{flex-basis:100%}
 }
-
 .toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);background:var(--brand);color:#fff;font-size:13px;font-weight:500;padding:11px 20px;border-radius:22px;box-shadow:0 6px 20px rgba(87,76,58,.25);opacity:0;pointer-events:none;transition:.22s;z-index:200}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
@@ -442,6 +416,8 @@ select.inp{font-weight:500}
   <aside class="side" id="side">
     <a href="#" class="on" data-page="pageList" onclick="goPage('pageList',event)"><span class="dot"></span>사설 연습</a>
     <a href="#" data-page="pageTTS" onclick="goPage('pageTTS',event)"><span class="dot"></span>낭독 테스트</a>
+    <a href="#" data-page="pageList" onclick="goReadTypeNav('speech',event)"><span class="dot"></span>연설체 연습</a>
+    <a href="#" data-page="pageList" onclick="goReadTypeNav('column',event)"><span class="dot"></span>논설체 연습</a>
     <a href="#" data-page="pageHistory" onclick="goPage('pageHistory',event)"><span class="dot"></span>연습 기록</a>
     <a href="#" data-page="pageStats" onclick="goPage('pageStats',event)"><span class="dot"></span>취약 글자 통계</a>
     <a href="#" data-page="pageVocab" onclick="goPage('pageVocab',event)"><span class="dot"></span>단어장 관리</a>
@@ -644,6 +620,20 @@ select.inp{font-weight:500}
         <div class="sub">채점할 때마다 자동으로 누적됩니다 · 총 <b id="hCount">0</b>건</div>
       </div>
       <div class="kpi-row" id="hKpi"></div>
+      <div class="chart-card" style="margin-bottom:12px">
+        <h3>전체 연습하기</h3>
+        <div class="desc">지금까지 연습에서 틀린 문장만 모아 다시 연습합니다</div>
+        <div class="btn-row">
+          <select id="aggFilter" class="inp" style="width:auto" onchange="renderAggPreview()">
+            <option value="0">오답 전체 문장</option>
+            <option value="10">10회 이상 틀린 문장</option>
+            <option value="5">5회 이상 틀린 문장</option>
+            <option value="3">3회 이상 틀린 문장</option>
+          </select>
+          <span class="type-hint" id="aggCount"></span>
+          <button class="btn primary" onclick="startAggPractice()">▶ 연습 시작</button>
+        </div>
+      </div>
       <div class="filter-row">
         <button class="chip on" data-hf="all" onclick="setHFilt('all',this)">전체</button>
         <button class="chip" data-hf="see" onclick="setHFilt('see',this)">보고치기</button>
@@ -659,6 +649,7 @@ select.inp{font-weight:500}
         </thead>
         <tbody id="hBody"></tbody>
       </table>
+      <div class="accwrong" id="sessDetail" style="margin-top:12px"></div>
     </div>
     <!-- ═══ 5. 취약 글자 통계 ═══ -->
     <div class="page" id="pageStats">
@@ -680,13 +671,13 @@ select.inp{font-weight:500}
         </div>
         <div class="chart-card">
           <h3>혼동 자모 TOP</h3>
-          <div class="desc">자주 틀린 초성 · 발음 유사 한글</div>
+          <div class="desc">원문 글자 → 잘못 친 글자(초성 기준) — 예: ㄱ→ㄴ은 &#39;ㄱ&#39; 자리를 &#39;ㄴ&#39;으로 잘못 입력한 경우</div>
           <div class="bars" id="confChart"></div>
         </div>
       </div>
       <div class="chart-card">
         <h3>취약 글자 상세</h3>
-        <div class="desc">자주 틀린 단어 — 클릭하면 단어장으로 이동합니다</div>
+        <div class="desc">자주 틀린 단어 — <b>단어 행을 클릭</b>하면 단어장에 추가하고 단어장 관리로 이동합니다</div>
         <div class="bars" id="wordChart"></div>
       </div>
     </div>
@@ -711,8 +702,7 @@ select.inp{font-weight:500}
           <button class="btn primary" onclick="addVocab()">추가</button>
         </div>
       </div>
-      <div id="vocabBox"></div>
-      <div class="chart-card" id="vocabTestCard" style="display:none;margin-top:12px">
+            <div class="chart-card" id="vocabTestCard" style="display:none;margin-top:12px">
         <h3>단어장 낭독 테스트</h3>
         <div class="desc">단어가 가려진 상태로 소리납니다. 소리를 듣고 그대로 받아쓰세요.</div>
         <div class="tts-quote" id="vocabQuote"></div>
@@ -724,6 +714,7 @@ select.inp{font-weight:500}
         </div>
         <div id="vocabTestRes"></div>
       </div>
+      <div id="vocabBox"></div>
     </div>
     <!-- ═══ 7. 사용자 정보 ═══ -->
     <div class="page" id="pageUser">
@@ -769,9 +760,9 @@ select.inp{font-weight:500}
     <span id="footStat"></span>
   </div>
 </footer>
-
 <script>
-
+let READ_TYPE="editorial";
+let _mainReload=null;
 /* ── 샘플 데이터 (실제 구현 시 매일 자동 수집·갱신) ── */
 const editorials = [
 {"date": "2026-11-20", "no": 1, "title": "핵 안보 ‘새판’ 미중러 첫 정상회담, 외교 역량 다져 대비를", "src": "서울신문", "chars": 1176, "lv": 3, "body": "도널드 트럼프 미국 대통령과 시진핑 중국 국가주석, 블라디미르 푸틴 러시아 대통령이 어제 중국 선전 아시아태평양경제협력체(APEC) 정상회의 참석을 계기로 사상 처음으로 미중러 정상회담을 했다. 이들은 핵 감축과 이란 전쟁, 우크라이나 전쟁 등에 대해 당사국들을 배제한 채 협의했다. 주목됐던 북미 정상회담은 결국 불발되면서 북핵 이슈도 미중러에 휘둘릴 가능성이 높아졌다. 미중러 정상은 90분간 이뤄진 회담 후 발표한 공동성명에서 “핵 위험 감소와 핵 확산 방지에 관해 대화를 진행할 것”이라고 밝혔다. 트럼프 대통령은 특히 “이란이 핵무기를 보유하도록 허용하지 않을 것”이라고 강조했지만 북한에 대한 언급은 없었다. 시 주석도 “핵무기를 금지하고 폐기해 핵무기 없는 세계를 건설해야 한다”고 했다. 그러나 핵무기 감축 규모 등 구체적 합의는 나오지 않았다. 최대 핵무기 보유국인 미중러 정상이 핵 안보의 질서 재편을 예고하면서 국제사회의 우려는 커진다. 북한을 둘러싼 ‘한미일 vs 북중러’ 구도를 깨고 트럼프 대통령이 중러 정상과 만난 것은 의미심장한 대목이다. 한반도를 비롯한 동북아 정세를 흔들 수 있다는 점에서 중대 분수령이 아닐 수 없다. 김정은 북한 국무위원장은 트럼프 대통령의 북미 회담 ‘러브콜’을 끝내 받지 않았다. 미중러가 당사국인 남북을 제외한 채 한반도 안보 문제를 좌지우지할 공산이 커졌다. 북한의 핵 보유를 인정하면서 핵군축 회담으로 흘러갈 가능성을 배제할 수 없다. 미국은 “이란과 북한의 핵문제는 다르다”며 북핵을 용인하는 듯한 발언을 내놓고 있는 마당이다. 이재명 대통령의 ‘페이스 메이커’ 역할이 그야말로 절실해졌다. 미국뿐 아니라 중러와도 소통하며 북핵 해결에 건설적 역할을 해줄 것을 설득해야 한다. 특히 첫 미중러 회담을 성공시켜 존재감을 과시한 중국이 북한의 대화 참여를 적극 유도할 수 있도록 외교 역량을 총동원해야 할 것이다. 이 대통령은 그제 시 주석, 푸틴 대통령과 만나 한반도 평화공존을 강조했다. 시 주석은 “중국은 한반도 문제 해결을 위한 건설적 역할을 지속해 나갈 것”이라고 했다. 한러 정상도 한반도 긴장 완화 필요성에 의견을 모았다. 그러나 트럼프 대통령과는 짧은 만남으로 관련 협의를 제대로 하지 못했다는 아쉬움이 크다. 미 정부가 그제 아세안 정상회의 결과에 대해 “북한의 완전한 비핵화에 전념하고 있다”고 밝힌 점은 그나마 다행스럽다.", "dno": 1},
@@ -804,13 +795,11 @@ const LV = {
 };
 const LINE_CHARS = 25;
 function pct1(v){ return (Number(v)||0).toFixed(1); }
-
 /* ── 상태 ── */
 let cur = 0, lv = 1, cpm = 110, showLines = 3;
 let target = "", revealed = 0, running = false, rTimer = null, startAt = null, elapsedBase = 0, eTimer = null;
 let firstKeyAt = null, lastKeyAt = null;
 let playing = false, loopOne = false;
-
 /* ── 게시판 · 페이저 · 날짜 ── */
 const BOARD_PAGE_SIZE = 10;
 const DATA_DATE = new Date(2026, 10, 19);   /* 지문 게시 기준일(수능일) */
@@ -852,8 +841,6 @@ function renderPager(){
 }
 function goBoardPage(n){ boardPage=n; boardAll=false; renderBoard(); window.scrollTo(0,0); }
 function toggleBoardAll(){ boardAll=!boardAll; renderBoard(); }
-
-
 /* ── 페이지 전환 ── */
 function showList(ev){
   if(ev) ev.preventDefault();
@@ -901,7 +888,6 @@ function toggleListPop(ev){
   pop.style.display="block";
 }
 document.addEventListener("click",ev=>{ const pop=document.getElementById("listPop"); if(pop && !pop.contains(ev.target)) pop.style.display="none"; });
-
 /* ── 설정 ── */
 let curTab="see";
 /* ── 테스트 진행 중 버튼 가드 ── */
@@ -972,7 +958,6 @@ function setPsize(s){
   renderPrompt();
 }
 /* ── 설정 토글 + 입력칸 placeholder 제어 ── */
-
 const typerEl=document.getElementById("typer");
 const typerPH=typerEl.placeholder;
 typerEl.addEventListener("focus",()=>{ typerEl.placeholder=""; });
@@ -992,7 +977,6 @@ function updateNotes(){
   const mins = cpm>0 ? n/cpm : 0;
   el.innerHTML = `${L.name} ${L.from}~${L.to}자/분 · 현재 <b>${cpm}</b>자/분 기준 약 <b>${mins.toFixed(1)}</b>분`;
 }
-
 function toggleDrawer(id){
   const el = document.getElementById(id);
   if(!el) return;
@@ -1007,7 +991,6 @@ function closeDrawers(){
   ["side","rail"].forEach(x=>{ const el=document.getElementById(x); if(el) el.classList.remove("open"); });
   const bd=document.getElementById("backdrop"); if(bd) bd.classList.remove("show");
 }
-
 /* ── 프롬프트 순차 노출: 브라우저 자연 줄바꿈 → 우측 끝까지 한 글자 단위로 채움 ── */
 function __charTop(tn, i){
   const r=document.createRange(); r.setStart(tn,i); r.setEnd(tn,i+1);
@@ -1052,13 +1035,11 @@ function renderPrompt(){
   const padV=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom)+2;
   const shown=target.slice(0,revealed);
   let up=target.slice(revealed);
-
   /* 현재 노출 지점이 놓인 줄까지만 남김 (그 줄의 나머지는 흐리게) */
   if(up){
     const keep=__boundaryKeep(box, shown, up);
     up=up.slice(0,keep).replace(/\s+$/,"");
   }
-
   box.innerHTML=`<div class="pwrap"><div class="pflow"><span class="shown">${esc(shown)}</span>`+
                 `${up?`<span class="up">${esc(up)}</span>`:""}</div></div>`;
   /* 안전 보정: 흐린 구간이 줄을 넘어가면 끝 글자를 줄여 노출 지점 줄까지만 남김 */
@@ -1084,7 +1065,6 @@ function renderPrompt(){
 if(document.fonts && document.fonts.ready){
   document.fonts.ready.then(()=>{ try{ if(document.getElementById("promptBox")) renderPrompt(); }catch(e){} });
 }
-
 let rafId=null, runT0=0, runBaseRevealed=0, runBaseK=0;
 /* 노출 속도를 순수 자수 기준으로: 공백·기호를 제외한 한글/숫자 글자 수로 분당속도를 계산 (요청 1) */
 function makeNsList(text){ const a=[]; for(let i=0;i<text.length;i++){ const ch=text[i]; if(!/\s/.test(ch) && /[가-힣ㄱ-ㅎ0-9a-zA-Z]/.test(ch)) a.push(i); } return a; }
@@ -1150,7 +1130,6 @@ function stopRun(){
 }
 function toggleRun(){ if(running){ stopRun(); renderPrompt(); } else startRun(); }
 function rewindRun(){ stopRun(); revealed = 0; elapsedBase = 0; firstKeyAt = lastKeyAt = null; renderPrompt(); updateTimes(); }
-
 /* ── 듣고치기 (데모: 브라우저 TTS) ── */
 let hCdTimer=null, hStart=null, hElapsedBase=0;
 function loopSegment(){
@@ -1212,7 +1191,6 @@ function toggleLoop(){
   loopOne = !loopOne;
   document.getElementById("chipLoop").classList.toggle("on", loopOne);
 }
-
 function toggleFull(){
   const f=document.getElementById("fullView");
   if(f.style.display==="flex"){ f.style.display="none"; return; }
@@ -1221,7 +1199,6 @@ function toggleFull(){
   document.getElementById("fvMeta").textContent=`${e.src} · ${e.chars}자`;
   f.style.display="flex";
 }
-
 /* ── 탭 전환 ── */
 function switchTab(t){
   const see = t==="see";
@@ -1241,9 +1218,7 @@ function switchTab(t){
   document.getElementById("tabHear").classList.toggle("on", !see);
   if(!see) stopRun(); else stopHear();
 }
-
 /* ── 일괄 채점: 정자·오자·탈자·첨자 (LCS 기반) ── */
-
 /* ── 채점용 정규화: 기호·문장부호 제외, 숫자·영문·한글 수사 → 한글 표기 환산 ── */
 function normMap(s){
   const LM={A:"에이",B:"비",C:"씨",D:"디",E:"이",F:"에프",G:"지",H:"에이치",I:"아이",J:"제이",K:"케이",L:"엘",M:"엠",N:"엔",O:"오",P:"피",Q:"큐",R:"알",S:"에스",T:"티",U:"유",V:"브이",W:"더블유",X:"엑스",Y:"와이",Z:"지"};
@@ -1414,15 +1389,19 @@ function _gradeAllInner(){
   /* ── 결과 누적: 연습 기록 · 취약 글자 · 단어장 자동 집계 ── */
   if(!inRetry && typeof saveSession === "function"){
     const ed = editorials[cur];
+    const st0=sentStarts(target), sErr=st0.map(()=>0);
+    marks.forEach(mk=>{ if((mk.t==="oja"||mk.t==="tal") && mk.ti!=null && mk.ti>=0){ let si=0; for(let q=0;q<st0.length;q++){ if(st0[q]<=mk.ti) si=q; else break; } sErr[si]++; } });
+    const sentList=splitSents(target).map((ss,i2)=>({s:ss.trim(), n:sErr[i2]||0})).filter(x=>x.n>0&&x.s).sort((a,b)=>b.n-a.n).slice(0,15);
+    const wcArr=Object.entries(accWrong).sort((a,b)=>b[1].n-a[1].n).slice(0,10).map(([c,e])=>[c,e.n]);
     saveSession({
       no:ed.no, title:ed.title, src:ed.src, lv:ed.lv, mode:curTab,
       acc:R.accP, jeong:R.jeong, oja:R.oja, tal:R.tal, cheom:R.cheom,
-      typed:R.m, tlen:R.n, sec:sec, cpm:realCpm
+      typed:R.m, tlen:R.n, sec:sec, cpm:realCpm,
+      body:target, wrong:sentList, wrongChars:wcArr
     });
   }
   if(typeof collectErrors === "function") collectErrors(R.marks, R.mT);
 }
-
 /* ── 틀린문장 다시치기: 틀린 문장만 모아 실제 테스트와 동일하게 속도에 맞춰 재시험 ── */
 let wrongSents=[], retryMode=null, retryIdx=0, retryTarget="", inRetry=false, firstResult=null;
 let prevRemain=Infinity, warnFlashUntil=0;
@@ -1441,7 +1420,6 @@ function startRetryFull(){
 }
 let rtText="", rtRevealed=0, rtRunning=false, rtRaf=null, rtT0=0, rtBase=0, rtCd=null, rtCpm=200;
 let rtFirst=null, rtLast=null;
-
 function buildRetryCpm(){
   const sel=document.getElementById("retryCpm"); if(!sel) return;
   sel.innerHTML="";
@@ -1589,7 +1567,6 @@ function gradeRetry(){
   /* 다시치기 결과도 취약 글자·단어장에 자동 집계 */
   if(typeof collectErrors === "function") collectErrors(R.marks, R.mT);
 }
-
 /* ── 스크립트 규격화: 괄호안 생략 + 최대 1,100자(공백 제외)로 축소 ── */
 function fitBody(raw){
   if(!raw) return "";
@@ -1613,7 +1590,6 @@ function fitBody(raw){
 function cleanTitle(t){
   return String(t||"").replace(/^\s*[\[【(]\s*(사설|기고|논설|칼럼|단상|시평)\s*[\]】)]\s*/,"").replace(/\s*[\[【]\s*사설\s*[\]】]\s*$/,"").trim();
 }
-
 function resetAll(){
   stopRun();
   /* 수집 규격: 괄호안 생략 + 700~1,000자(공백 제외)로 축소 */
@@ -1643,7 +1619,6 @@ function updateProgress(){
   lastKeyAt = now;
   updateStats();
 }
-
 /* ── 입력 이벤트 ── */
 document.getElementById("typer").addEventListener("input", updateProgress);
 document.getElementById("retryTyper").addEventListener("input", ()=>{
@@ -1651,7 +1626,6 @@ document.getElementById("retryTyper").addEventListener("input", ()=>{
   if(!rtFirst) rtFirst=t;
   rtLast=t;
 });
-
 /* ── 초기화 ── */
 function initToday(){
   const d = new Date();
@@ -1672,12 +1646,10 @@ const SKEY = "sodam.v1";
 const SESS_MAX = 300;
 const CHO = ["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ","ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
 const MODE_LABEL = {see:"보고치기", hear:"듣고치기", tts:"낭독 테스트"};
-
 /* ── 저장소(localStorage) ─────────────────── */
 function sAll(){ try{ return JSON.parse(localStorage.getItem(SKEY)||"{}") || {}; }catch(e){ return {}; } }
 function sGet(k, def){ const a=sAll(); return (k in a) ? a[k] : def; }
 function sSet(k, v){ try{ const a=sAll(); a[k]=v; localStorage.setItem(SKEY, JSON.stringify(a)); }catch(e){} }
-
 /* ── 토스트 ─────────────────── */
 let toastTimer=null;
 function showToast(msg){
@@ -1687,7 +1659,6 @@ function showToast(msg){
   clearTimeout(toastTimer);
   toastTimer = setTimeout(()=>t.classList.remove("show"), 2400);
 }
-
 /* ── 유틸 ─────────────────── */
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function relDate(ts){
@@ -1713,12 +1684,23 @@ function topN(obj, n){
   return Object.keys(obj||{}).map(k=>[k, obj[k]]).sort((a,b)=>b[1]-a[1]).slice(0,n);
 }
 function pct(part, all){ return all>0 ? Math.round(part/all*100) : 0; }
-
 /* ── 페이지 전환 ─────────────────── */
 function setSideActive(pageId){
   document.querySelectorAll("aside.side a[data-page]").forEach(a=>a.classList.remove("on"));
   const link = document.querySelector(`aside.side a[data-page="${pageId}"]`);
   if(link) link.classList.add("on");
+}
+function goReadTypeNav(t, ev){
+  if(ev) ev.preventDefault();
+  READ_TYPE=t;
+  const h1=document.querySelector("#pageList .board-head h1");
+  const sub=document.querySelector("#pageList .board-head .sub");
+  if(h1) h1.textContent = t==="speech" ? "연설체 연습" : t==="column" ? "논설체 연습" : "사설 연습";
+  if(sub) sub.innerHTML = t==="speech" ? "매일 갱신되는 연설문 속기 연습 지문 · 총 <b id=\"totalCount\">0</b>편"
+    : t==="column" ? "매일 갱신되는 논설문 속기 연습 지문 · 총 <b id=\"totalCount\">0</b>편"
+    : "매일 갱신되는 사설 속기 연습 지문 · 총 <b id=\"totalCount\">0</b>편";
+  goPage("pageList", ev);
+  try{ if(_mainReload) _mainReload(); }catch(e){}
 }
 function goPage(id, ev){
   if(ev) ev.preventDefault();
@@ -1733,7 +1715,6 @@ function goPage(id, ev){
   if(id==="pageUser") renderUser();
   if(id==="pageTTS") loadTts();
 }
-
 /* ── 프로필 ─────────────────── */
 const DEFAULT_PROFILE = {name:"수험생", lv:1, goalCpm:300, note:"", joined:Date.now()};
 function getProfile(){ return Object.assign({}, DEFAULT_PROFILE, sGet("profile", {})); }
@@ -1746,7 +1727,6 @@ function renderHeaderUser(){
   const n = document.getElementById("userName"); if(n) n.textContent = p.name || "수험생";
   const l = document.getElementById("userLv"); if(l) l.textContent = (LV[p.lv]||LV[1]).name;
 }
-
 /* ── 연습 기록 ─────────────────── */
 function getSessions(){ const s = sGet("sessions", []); return Array.isArray(s)?s:[]; }
 function setSessions(list){ sSet("sessions", list.slice(0, SESS_MAX)); }
@@ -1763,7 +1743,6 @@ function clearSessions(){
   renderHistory(); renderStats(); renderRail(); updateFootStat();
   showToast("연습 기록을 삭제했습니다");
 }
-
 /* ── 취약 글자·혼동·단어 집계 ─────────────────── */
 function addWeakChars(pairs){
   const weak = sGet("weak", {}), conf = sGet("conf", {});
@@ -1815,7 +1794,6 @@ function collectErrors(marks, mT){
   });
   sSet("words", wm);
 }
-
 /* ── 단어장 ─────────────────── */
 function getVocab(){ const v = sGet("vocab", []); return Array.isArray(v)?v:[]; }
 function setVocab(list){ sSet("vocab", list); }
@@ -1922,7 +1900,6 @@ function vocabGrade(){
   r.innerHTML = `<div class="tts-res"><div class="box ${ok?"":"rose"}"><div class="k">정답</div><div class="v" style="font-family:var(--mono);font-size:16px">${esc(vocabTestWord)}</div></div>
     <div class="box ${ok?"":"rose"}"><div class="k">결과</div><div class="v">${ok?"정확":"오류"}</div></div></div>`;
 }
-
 /* ── 연습 기록 페이지 ─────────────────── */
 let hFilter="all";
 function setHFilt(f, el){
@@ -1950,7 +1927,7 @@ function renderHistory(){
     return;
   }
   body.innerHTML = list.map(s=>`
-    <tr>
+    <tr style="cursor:pointer" onclick="openSessDetail('${s.id}')" title="클릭하면 이 기록의 오답 상세를 봅니다">
       <td class="date">${dtTime(s.ts)}</td>
       <td class="title">${esc(s.title||"")}</td>
       <td style="text-align:center"><span class="badge">${MODE_LABEL[s.mode]||s.mode||"-"}</span></td>
@@ -1964,6 +1941,69 @@ function delSession(id){
   setSessions(getSessions().filter(s=>s.id!==id));
   renderHistory(); renderStats(); renderRail(); updateFootStat();
   showToast("기록을 삭제했습니다");
+}
+function openSessDetail(id){
+  const rec=getSessions().find(x=>x.id===id);
+  const box=document.getElementById("sessDetail");
+  if(!rec||!box) return;
+  const wc=(rec.wrongChars||[]).map(([c,n])=>`<span class="aw"><span class="awc">${esc(c)}</span><b>×${n}</b></span>`).join("")
+    || `<span class="type-hint">글자 정보 없음</span>`;
+  const ws=(rec.wrong||[]).map(x=>{ const st=typeof x==="string"?x:x.s, n=typeof x==="string"?1:x.n;
+    return `<div class="bar-row"><span class="bar-lbl" style="width:auto;flex:0 1 auto;max-width:70%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(st)}</span><span class="bar-n">${n}회 오류</span></div>`; }).join("")
+    || `<div class="empty">틀린 문장 기록이 없습니다</div>`;
+  box.innerHTML = `<h4>기록 상세 — ${esc(rec.title||"")} <span>${dtTime(rec.ts)} · ${MODE_LABEL[rec.mode]||rec.mode||""} · 정확도 ${pct1(rec.acc)}%</span></h4>`
+    + `<div class="cmp-label">가장 많이 틀린 글자</div><div class="aw-list">${wc}</div>`
+    + `<div class="cmp-label">가장 많이 틀린 문장 (오류 많은 순)</div>${ws}`
+    + `<div class="btn-row"><button class="btn primary" onclick="practiceSessionWrong('${id}')">▶ 틀린문장 연습하기</button>`
+    + `<button class="btn ghost" onclick="document.getElementById('sessDetail').style.display='none'">닫기</button></div>`;
+  box.style.display="flex";
+  box.scrollIntoView({behavior:"smooth", block:"nearest"});
+}
+function practiceSessionWrong(id){
+  const rec=getSessions().find(x=>x.id===id);
+  if(!rec||!rec.body){ showToast("본문이 저장되지 않은 기록이라 다시 연습할 수 없습니다"); return; }
+  const list=rec.wrong||[]; const sents=list.map(x=>typeof x==="string"?x:x.s);
+  if(!sents.length){ showToast("틀린 문장 기록이 없습니다"); return; }
+  beginExtraPractice(rec.body, sents, "선택한 기록의 틀린 문장 "+sents.length+"개를 연습합니다");
+}
+function aggWrongSentences(){
+  const cnt={};
+  getSessions().forEach(rec=>{ (rec.wrong||[]).forEach(x=>{ const st=typeof x==="string"?x:x.s; if(!st)return; cnt[st]=(cnt[st]||0)+1; }); });
+  return cnt;
+}
+function renderAggPreview(){
+  const min=+((document.getElementById("aggFilter")||{}).value||0);
+  const cnt=aggWrongSentences();
+  const arr=Object.entries(cnt).filter(([st,n])=>n>=min).sort((a,b)=>b[1]-a[1]);
+  const el=document.getElementById("aggCount"); if(el) el.textContent=`해당 문장 ${arr.length}개`;
+  return arr;
+}
+function startAggPractice(){
+  const arr=renderAggPreview();
+  if(!arr.length){ showToast("조건에 맞는 틀린 문장이 없습니다 — 먼저 연습을 몇 회 진행해 보세요"); return; }
+  const sents=arr.map(([st])=>st);
+  beginExtraPractice(sents.join(" "), sents, "오답 문장 "+sents.length+"개를 연습합니다");
+}
+function beginExtraPractice(body, sents, msg){
+  goPage("pageList");
+  wrongSents=sents; retryMode="all"; retryIdx=0; inRetry=true; firstResult=null;
+  stopRun(); stopHear();
+  target=body; revealed=0; elapsedBase=0; firstKeyAt=lastKeyAt=null;
+  document.getElementById("typer").value="";
+  document.getElementById("grading").classList.remove("show");
+  const awb=document.getElementById("accWrongBox"); if(awb) awb.classList.remove("show");
+  const cb=document.getElementById("compareBox"); if(cb){ cb.style.display="none"; cb.innerHTML=""; }
+  const rb=document.getElementById("retryBox"); rb.style.display="flex";
+  document.getElementById("retryArea").style.display="flex";
+  if(typeof buildRetryCpm==="function") buildRetryCpm();
+  loadRetry();
+  showToast(msg);
+}
+function weakWordToVocab(el){
+  const w=el.getAttribute("data-w"); if(!w) return;
+  addVocabWord(w,1,false); renderVocab();
+  goPage("pageVocab");
+  showToast("'"+w+"' 을(를) 단어장에 추가했습니다");
 }
 function exportCsv(){
   const list = getSessions();
@@ -1981,7 +2021,6 @@ function exportCsv(){
   setTimeout(()=>URL.revokeObjectURL(url), 1000);
   showToast("CSV를 내려받았습니다");
 }
-
 /* ── 취약 글자 통계 페이지 ─────────────────── */
 function renderStats(){
   const all = getSessions();
@@ -2042,7 +2081,7 @@ function renderStats(){
       const max = t[0][1];
       confChart.innerHTML = t.map(([k,v])=>`
         <div class="bar-row">
-          <span class="bar-lbl" style="width:56px;flex:0 0 56px">${esc(k.replace("→",""))}</span>
+          <span class="bar-lbl" style="width:84px;flex:0 0 84px">${esc(k)}</span>
           <span class="bar-track"><i class="bar-fill blue" style="width:${Math.max(4, v/max*100)}%"></i></span>
           <span class="bar-n">${v}회</span>
         </div>`).join("");
@@ -2057,14 +2096,13 @@ function renderStats(){
       const max = t[0][1];
       wordChart.innerHTML = t.map(([k,v])=>`
         <div class="bar-row">
-          <span class="bar-lbl" style="font-family:var(--mono);width:118px;flex:0 0 118px;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(k)}</span>
+          <span class="bar-lbl" data-w="${esc(k)}" onclick="weakWordToVocab(this)" style="font-family:var(--mono);width:118px;flex:0 0 118px;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;text-decoration:underline dotted">${esc(k)}</span>
           <span class="bar-track"><i class="bar-fill" style="width:${Math.max(4, v/max*100)}%"></i></span>
           <span class="bar-n">${v}회</span>
         </div>`).join("");
     }
   }
 }
-
 /* ── 낭독 테스트 페이지 ─────────────────── */
 let ttsIdx=0, ttsTimer=null, ttsStart=null, ttsElapsed=0, ttsMask=false;
 function loadTts(){
@@ -2159,7 +2197,6 @@ function ttsFinish(){
     typed: typed.replace(/\s/g,"").length, tlen:e.chars, sec:sec, cpm:cpm
   });
 }
-
 /* ── 사용자 정보 페이지 ─────────────────── */
 function renderUser(){
   const p = getProfile();
@@ -2211,7 +2248,6 @@ function resetAllData(){
   try{ localStorage.removeItem(SKEY); }catch(e){}
   location.reload();
 }
-
 /* ── 우측 레일 ─────────────────── */
 function renderRail(){
   const ul = document.getElementById("railList");
@@ -2246,7 +2282,6 @@ function updateFootStat(){
   const avg = Math.round(all.reduce((a,s)=>a+(s.acc||0),0)/all.length);
   el.textContent = `총 ${all.length}회 연습 · 평균 정확도 ${pct1(avg)}%`;
 }
-
 /* ── 키보드 단축키 ─────────────────── */
 document.addEventListener("keydown", ev=>{
   const tag = (ev.target.tagName||"").toLowerCase();
@@ -2269,7 +2304,6 @@ document.addEventListener("keydown", ev=>{
     if(tp && tp.classList.contains("show") && curTab==="see"){ ev.preventDefault(); toggleRun(); }
   }
 });
-
 /* ── 초기화 ─────────────────── */
 (function initApp2(){
   renderHeaderUser();
@@ -2279,15 +2313,15 @@ document.addEventListener("keydown", ev=>{
   applyProfileLv();
   loadTts();
 })();
-
 /* ── 자동집계 완성: 매일 새벽 자동수집된 사설(data/*.json)을 사이트에 자동 반영 ── */
 (async function pullDailyEditorials(){
+  _mainReload=pullDailyEditorials;
   const days=[];
   for(let k=0;k<7;k++){ const d=new Date(); d.setDate(d.getDate()-k); days.push(fmtDate(d)); }
   const got=[];
   await Promise.all(days.map(async dt=>{
     try{
-      const r = await fetch("data/"+dt+".json", {cache:"no-store"});
+      const r = await fetch(READ_TYPE==="speech"?"data/speech/"+dt+".json":READ_TYPE==="column"?"data/column/"+dt+".json":"data/"+dt+".json", {cache:"no-store"});
       if(!r.ok) return;
       const j = await r.json();
       (j.picked||[]).forEach(p=>{
