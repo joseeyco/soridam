@@ -526,7 +526,7 @@ def same_topic(a, b):
 
 
 # ─────────────────────────────────────────────────────────────
-def collect_outlet(name, domain, hist):
+def collect_outlet(name, domain, hist, min_chars=MIN_CHARS, allow_excerpt=True):
     cands = []
     for c in bing_items(domain):
         if len(cands) >= PER_OUTLET_TRY:
@@ -538,7 +538,14 @@ def collect_outlet(name, domain, hist):
             continue
         txt = strip_annotations(txt)
         orig = nospace(txt)
-        fitted, excerpted = fit_length(txt)
+        if orig < min_chars:
+            continue
+        if orig >= MAX_EXCL:
+            if not allow_excerpt:
+                continue
+            fitted, excerpted = fit_length(txt)
+        else:
+            fitted, excerpted = txt, False
         if not fitted or body_key(fitted) in hist["bodies"]:
             continue
         ctitle = clean_title(c["title"])
@@ -573,6 +580,27 @@ def main():
             break
         time.sleep(1.0)
 
+    # 미달 시 완화 조건으로 보충 (동일주제 금지 · 과거 중복 금지 · 1,100자 미만 유지)
+    def relaxed_fill(min_chars):
+        added = 0
+        for name, domain in order:
+            if len(chosen) >= PICK:
+                break
+            for c in collect_outlet(name, domain, hist, min_chars=min_chars, allow_excerpt=False):
+                if any(same_topic(c["profile"], x["profile"]) for x in chosen):
+                    continue
+                c["relaxed"] = True
+                chosen.append(c)
+                added += 1
+                break
+            time.sleep(1.0)
+        return added
+
+    if len(chosen) < PICK:
+        relaxed_fill(300)
+    if len(chosen) < PICK:
+        relaxed_fill(150)
+
     chosen.sort(key=lambda x: x["chars"])                       # 길이 오름차순 1~10번
     os.makedirs(DATA_DIR, exist_ok=True)
     out_path = os.path.join(DATA_DIR, f"{TODAY.strftime('%Y-%m-%d')}.json")
@@ -587,6 +615,7 @@ def main():
             "chars": n,
             "orig_chars": p["orig_chars"],
             "excerpted": p["excerpted"],
+            "relaxed": bool(p.get("relaxed")),
             "lv": 1 if n <= 850 else (2 if n <= 1000 else 3),
             "pub": p["pub"],
             "url": p["url"],
@@ -594,7 +623,8 @@ def main():
         })
     out = {
         "date": TODAY.strftime("%Y-%m-%d"),
-        "criteria": "700~1,099자(공백 제외) · 초과분은 문장 단위 자동발췌 · 과거 수집분/동일 주제/동일 신문사 제외 · 길이 오름차순 1~10번",
+        "criteria": "700~1,099자(공백 제외) · 초과분은 문장 단위 자동발췌 · 과거 수집분/동일 주제/동일 신문사 제외 · "
+                    "미달분은 완화 조건(동일주제X·과거중복X·1,100자 미만)으로 보충 · 길이 오름차순 1~10번",
         "picked": picked,
         "summary": [{"no": p["no"], "outlet": p["src"], "title": p["title"], "chars": p["chars"],
                      "excerpted": p["excerpted"], "url": p["url"]} for p in picked],
@@ -604,6 +634,8 @@ def main():
 
     for p in picked:
         tag = f' (발췌, 원문 {p["orig_chars"]}자)' if p["excerpted"] else ""
+        if p.get("relaxed"):
+            tag += " (완화)"
         print(f'{p["no"]:>2}. [{p["src"]}] {p["chars"]}자{tag} | {p["title"][:60]}')
     print(f"\n최종 {len(picked)}편 / 주제 중복으로 건너뜀 {topic_skipped}건")
     if len(picked) < PICK:
