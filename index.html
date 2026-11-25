@@ -239,6 +239,16 @@ button.guarded:hover{filter:none}
 #retryPrompt{min-height:74px}
 #retryTyper{font-family:var(--mono);font-weight:600;font-size:17px;line-height:1.8;padding:12px 14px;border:1.5px solid var(--line-strong);border-radius:6px;background:var(--panel);color:var(--ink);-webkit-text-fill-color:var(--ink);min-height:110px;resize:vertical;width:100%}
 #retryTyper:focus{border-color:var(--brand);outline:none}
+/* 테스트 입력창 글자색 — 스크립트보다 살짝 연하게 (요청 7) */
+#typer{color:var(--ink-mid);color:color-mix(in srgb,var(--ink) 72%,var(--bg));-webkit-text-fill-color:var(--ink-mid);-webkit-text-fill-color:color-mix(in srgb,var(--ink) 72%,var(--bg))}
+/* 1차 결과지 비교 (요청 2) */
+.compare{border:1px solid var(--line-strong);border-radius:8px;padding:12px 14px;background:var(--bg)}
+.compare h4{font-family:var(--disp);font-size:13.5px;color:var(--ink-mid);margin-bottom:8px}
+.compare .cmp-t{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:8px}
+.compare .cmp-t th,.compare .cmp-t td{border:1px solid var(--line);padding:5px 8px;text-align:center}
+.compare .cmp-t th{background:#fff;color:var(--ink-soft);font-weight:700}
+.compare .cmp-label{font-size:12px;font-weight:700;color:var(--ink-soft);margin:4px 0}
+.compare .diffbox{max-height:160px;overflow:auto;font-size:13px}
 .retry-diff{font-family:var(--mono);font-weight:600;font-size:17px;line-height:1.9;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px 12px;white-space:pre-wrap;word-break:break-all;max-height:220px;overflow:auto}
 
 /* 듣고치기 */
@@ -496,9 +506,9 @@ select.inp{font-weight:500}
           <div class="player" id="seePlayer">
             <button class="pctrl play-wide" id="btnPlay" onclick="toggleRun()" aria-label="테스트 시작"><span id="playLabel">▶ 테스트 시작</span></button>
             <button class="pctrl ghost" onclick="rewindRun()" aria-label="처음부터" title="되감기(처음부터)">⟲</button>
-            <span class="p-time">남은 시간 <b id="tRemain">00:00</b></span>
+            <span class="p-time">진행 <b id="tElapsed">00:00</b></span>
             <div class="p-bar"><i id="pbar"></i></div>
-            <span class="p-time" id="tElapsed">00:00</span>
+            <span class="p-time">총 <b id="tTotal">00:00</b></span>
           </div>
         </div>
         <!-- 보고치기: 프롬프트가 입력칸 바로 위에서 순차 노출 -->
@@ -531,7 +541,7 @@ select.inp{font-weight:500}
           </span>
         </div>
         <div class="grading" id="grading">
-          <h4>채점 결과 — 정확도 <b id="gAcc">0%</b></h4>
+          <h4>채점 결과 — 정확도 <b id="gAcc">0%</b> · 실측 <b id="gReal">—</b></h4>
           <div class="gstats">
             <div class="gstat jeong"><div class="k">정자</div><div class="v" id="gJeong">0</div></div>
             <div class="gstat oja"><div class="k">오자</div><div class="v" id="gOja">0</div></div>
@@ -541,10 +551,11 @@ select.inp{font-weight:500}
           <div class="legend"><span class="lg-j">정자</span><span class="lg-o">오자(다른 글자)</span><span class="lg-t">탈자(누락)</span><span class="lg-c">첨자(추가)</span></div>
           <div class="diffbox" id="diffBox"></div>
           <span class="gnote" id="gNote"></span>
+          <div class="compare" id="compareBox" style="display:none"></div>
           <div class="retry" id="retryBox" style="display:none">
             <h4>틀린문장 다시치기 <span id="retryInfo"></span></h4>
             <div class="btn-row">
-              <button class="btn" onclick="startRetry('all')">틀린문장 전체</button>
+              <button class="btn" onclick="startRetryFull()">틀린문장 전체</button>
               <button class="btn" onclick="startRetry('one')">한문장 반복치기</button>
             </div>
             <div id="retryArea" style="display:none;flex-direction:column;gap:10px">
@@ -1060,11 +1071,11 @@ function revealLoop(){
 function fmt(s){ s=Math.max(0,Math.round(s)); return `${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`; }
 function updateTimes(){
   const remain = (target.length - revealed) / cpm * 60;
-  const rt = document.getElementById("tRemain");
-  rt.textContent = fmt(remain);
-  rt.classList.toggle("warn", remain < 60 && revealed > 0);
   const el = elapsedBase + (startAt ? (Date.now()-startAt)/1000 : 0);
-  document.getElementById("tElapsed").textContent = fmt(el);
+  const le = document.getElementById("tElapsed");
+  if(le){ le.textContent = fmt(el); le.classList.toggle("warn", remain <= 30 && revealed > 0); }
+  const tt = document.getElementById("tTotal");
+  if(tt) tt.textContent = fmt(target.length/cpm*60);
 }
 let cdTimer=null;
 function beginRun(){
@@ -1306,6 +1317,13 @@ function _gradeAllInner(){
   const sec = Math.round(elapsedBase + (startAt ? (Date.now()-startAt)/1000 : 0));
   const tsec = (firstKeyAt && lastKeyAt) ? (lastKeyAt - firstKeyAt)/1000 : sec;
   const realCpm = tsec >= 3 ? Math.round(R.m / (tsec/60)) : cpm;
+  const gReal=document.getElementById("gReal");
+  if(gReal) gReal.textContent = realCpm+"자/분";
+  if(!inRetry){
+    firstResult={acc:R.accP, jeong:R.jeong, oja:R.oja, tal:R.tal, cheom:R.cheom, real:realCpm, html:marksToHtml(R.marks)};
+    const cb=document.getElementById("compareBox");
+    if(cb){ cb.style.display="none"; cb.innerHTML=""; }
+  }
   document.getElementById("gNote").textContent =
     `원문 ${R.n}자 · 입력 ${R.m}자 · 실측 ${realCpm}자/분 · 정확도 = 정자 ÷ (정자+오자+탈자+첨자) × 100 · 기호·문장부호는 제외하고 계산하며, 숫자는 입력한 그대로 숫자로 비교합니다(예: 5≠오). 띄어쓰기는 원문 기준으로 표시합니다.`;
   document.getElementById("grading").classList.add("show");
@@ -1330,12 +1348,30 @@ function _gradeAllInner(){
     document.getElementById("retryArea").style.display="none";
     document.getElementById("retryDiffBox").innerHTML="";
     if(wrongSents.length){
-      document.getElementById("retryInfo").textContent = "틀린 문장 " + wrongSents.length + "개";
+      document.getElementById("retryInfo").textContent =
+        (inRetry ? "아직 남은 틀린 문장 " : "틀린 문장 ") + wrongSents.length + "개"
+        + (inRetry ? " · '틀린문장 전체'를 눌러 틀린 문장이 없을 때까지 반복하세요" : "");
+      rb.style.display = "flex";
+    } else if(inRetry){
+      document.getElementById("retryInfo").textContent = "완료 — 틀린 문장이 없습니다. 초도 테스트 + 재테스트를 모두 마쳤어요.";
       rb.style.display = "flex";
     } else rb.style.display = "none";
   }
+  if(inRetry && typeof firstResult!=="undefined" && firstResult){
+    const cb=document.getElementById("compareBox");
+    if(cb){
+      cb.style.display="block";
+      cb.innerHTML = `<h4>1차 결과지와 비교</h4>`
+        + `<table class="cmp-t"><tr><th></th><th>1차 (전체지문)</th><th>재테스트 (틀린문장)</th></tr>`
+        + `<tr><th>정확도</th><td>${pct1(firstResult.acc)}%</td><td>${pct1(R.accP)}%</td></tr>`
+        + `<tr><th>정·오·탈·첨</th><td>${firstResult.jeong}·${firstResult.oja}·${firstResult.tal}·${firstResult.cheom}</td><td>${R.jeong}·${R.oja}·${R.tal}·${R.cheom}</td></tr>`
+        + `<tr><th>실측</th><td>${firstResult.real}자/분</td><td>${realCpm}자/분</td></tr></table>`
+        + `<div class="cmp-label">1차 결과지 — 오류 표시</div><div class="diffbox">${firstResult.html}</div>`;
+      cb.scrollIntoView({behavior:"smooth", block:"nearest"});
+    }
+  }
   /* ── 결과 누적: 연습 기록 · 취약 글자 · 단어장 자동 집계 ── */
-  if(typeof saveSession === "function"){
+  if(!inRetry && typeof saveSession === "function"){
     const ed = editorials[cur];
     saveSession({
       no:ed.no, title:ed.title, src:ed.src, lv:ed.lv, mode:curTab,
@@ -1347,7 +1383,20 @@ function _gradeAllInner(){
 }
 
 /* ── 틀린문장 다시치기: 틀린 문장만 모아 실제 테스트와 동일하게 속도에 맞춰 재시험 ── */
-let wrongSents=[], retryMode=null, retryIdx=0, retryTarget="";
+let wrongSents=[], retryMode=null, retryIdx=0, retryTarget="", inRetry=false, firstResult=null;
+/* 재테스트: 처음 테스트와 동일한 화면·진행으로 재세팅하되, 대상은 틀린 문장만 (요청 1) */
+function startRetryFull(){
+  if(!wrongSents.length){ showToast("틀린 문장이 없어요"); return; }
+  inRetry=true;
+  stopRun(); stopHear();
+  target = wrongSents.join(" ");
+  revealed = 0; elapsedBase = 0; firstKeyAt = lastKeyAt = null;
+  document.getElementById("typer").value = "";
+  document.getElementById("grading").classList.remove("show");
+  document.getElementById("retryBox").style.display="none";
+  resetTimes(); renderPrompt(); updateStats(); updateNotes();
+  showToast("틀린 문장 " + wrongSents.length + "개로 다시 테스트합니다");
+}
 let rtText="", rtRevealed=0, rtRunning=false, rtRaf=null, rtT0=0, rtBase=0, rtCd=null, rtCpm=200;
 let rtFirst=null, rtLast=null;
 
@@ -1498,15 +1547,19 @@ function resetAll(){
   /* 수집 규격: 괄호안 생략 + 700~1,000자(공백 제외)로 축소 */
   target = fitBody(editorials[cur].body || editorials[0].body);
   revealed = 0; elapsedBase = 0; firstKeyAt = lastKeyAt = null;
+  inRetry = false; firstResult = null;
   document.getElementById("typer").value = "";
   document.getElementById("grading").classList.remove("show");
   const rb=document.getElementById("retryBox"); if(rb) rb.style.display="none";
+  const cb=document.getElementById("compareBox"); if(cb){ cb.style.display="none"; cb.innerHTML=""; }
   resetTimes();
-  renderPrompt(); updateProgress(); updateNotes();
+  renderPrompt(); updateStats(); updateNotes();
 }
 function resetTimes(){
-  document.getElementById("tRemain").textContent=fmt(target.length/cpm*60);
-  document.getElementById("tElapsed").textContent="00:00";
+  const tt=document.getElementById("tTotal");
+  if(tt) tt.textContent=fmt(target.length/cpm*60);
+  const le=document.getElementById("tElapsed");
+  if(le) le.textContent="00:00";
 }
 function updateProgress(){
   const now = performance.now();
