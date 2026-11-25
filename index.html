@@ -2163,14 +2163,15 @@ document.addEventListener("keydown", ev=>{
       if(!r.ok) return;
       const j = await r.json();
       (j.picked||[]).forEach(p=>{
-        if(!p || !p.title || !p.text) return;
-        const ch = +p.chars_nospace || String(p.text).replace(/\s/g,"").length;
+        const bodyTxt = String(p.body || p.text || "");
+        if(!p || !p.title || !bodyTxt) return;
+        const ch = +p.chars || +p.chars_nospace || bodyTxt.replace(/\s/g,"").length;
         got.push({
           date: j.date || dt,
           title: cleanTitle(p.title),
-          src: p.outlet || "",
+          src: p.src || p.outlet || "",
           chars: ch,
-          body: String(p.text),
+          body: bodyTxt,
           lv: ch < 950 ? 1 : (ch <= 1050 ? 2 : 3)
         });
       });
