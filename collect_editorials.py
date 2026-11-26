@@ -14,7 +14,7 @@ v5 변경점 (v4 대비)
  9) SSL 인증서 검증 켬, 네트워크 재시도 추가
 유지: [신문사] 제목 헤더 · 길이 오름차순 1~10번
 """
-import os, re, json, sys, ssl, time, random, html as H
+import os, re, json, sys, ssl, time, random, html as H, unicodedata
 import urllib.request, urllib.parse
 from collections import Counter
 from glob import glob
@@ -151,13 +151,31 @@ def clean_title(t):
     return re.sub(r"\s+", " ", s).strip()
 
 
+try:
+    import hanja as _hanja
+except ImportError:
+    _hanja = None
+
+def hanja_to_ko(t):
+    """한자(이체자 포함) → 한글 (예: 兆→조, 勞→노, 李→이, 展開→전개). 라이브러리 미설치 시 한자만 제거."""
+    t = str(t)
+    if _hanja:
+        t = unicodedata.normalize("NFKC", t)
+    if not _hanja:
+        return re.sub(r"[\u3400-\u9FFF\uF900-\uFAFF]", " ", t)
+    try:
+        return _hanja.translate(str(t), "substitution")
+    except Exception:
+        return re.sub(r"[\u3400-\u9FFF\uF900-\uFAFF]", " ", t)
+
 LATIN2KO = {"a":"에이","b":"비","c":"씨","d":"디","e":"이","f":"에프","g":"지","h":"에이치","i":"아이","j":"제이","k":"케이","l":"엘","m":"엠","n":"엔","o":"오","p":"피","q":"큐","r":"알","s":"에스","t":"티","u":"유","v":"브이","w":"더블유","x":"엑스","y":"와이","z":"제이"}
 LATIN_RE = re.compile(r"[A-Za-z]")
 SYMBOL_RE = re.compile(r"[\u2018\u2019\u201c\u201d\u3008\u3009\u300c\u300d\u300e\u300f\u00ab\u00bb\u2039\u203a<>\"'`\u00b7\u2025\u2026\u2013\u2014\u2010\u2011\u2212\uff0b\u2260\u2264\u2265\u2192\u2190\u2191\u2193\u00a9\u00ae\u2113\u203b\u25c6\u25cf\u25aa\u25a1\u25cb\u25b3\u2211\u00b1\u00d7]")
 
 def normalize_text(t):
-    """기호 최소화 + 영문 → 한글 음차 (예: k→케이, ai→에이아이, %→퍼센트)"""
+    """한자→한글 · 기호 최소화 · 영문→한글 음차 (예: 兆단위→조단위, k→케이, %→퍼센트)"""
     t = str(t)
+    t = hanja_to_ko(t)
     t = SYMBOL_RE.sub(" ", t)
     t = t.replace("%", "퍼센트")
     t = LATIN_RE.sub(lambda m: LATIN2KO[m.group(0).lower()], t)
