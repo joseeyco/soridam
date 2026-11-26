@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>소담,소리담다 — 사설 속기 연습</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@500;700;900&family=IBM+Plex+Sans+KR:wght@400;500;700&family=Nanum+Gothic+Coding:wght@400;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@500;700;900&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#FCFCFD;
@@ -25,13 +25,14 @@
   --blue2-soft:#F2F4F7;
   --ok:#6E8079;
   --ok-soft:#F1F4F2;
-  --mono:'Nanum Gothic Coding',monospace;
+  --mono:'IBM Plex Sans KR',sans-serif;
   --sans:'IBM Plex Sans KR',sans-serif;
   --disp:'Gothic A1',sans-serif;
-  --num:'IBM Plex Mono',monospace;
+  --num:'IBM Plex Sans KR',sans-serif;
+  --script:'IBM Plex Sans KR',sans-serif;
 }
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.65;overflow-x:hidden}html{overflow-x:hidden}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.65;overflow-x:hidden;font-variant-numeric:tabular-nums}html{overflow-x:hidden}
 button{font-family:inherit;cursor:pointer}
 :focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 /* ── 헤더 ─────────────────── */
@@ -145,23 +146,23 @@ table.board td.date{width:105px;text-align:center;font-family:var(--num);color:v
 .prompt-wrap{display:flex;flex-direction:column;gap:10px}
 .prompt-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .prompt-head .t{font-size:12.5px;font-weight:700;color:var(--ink-soft)}
-.prompt-head .t b{font-family:'IBM Plex Mono',sans-serif}
+.prompt-head .t b{font-family:var(--script)}
 .prompt-head .info{font-family:var(--num);font-size:12px;color:var(--brand);margin-left:auto}
-.prompt{font-family:'IBM Plex Mono',sans-serif;font-weight:600;font-size:17px;line-height:1.55;letter-spacing:.6px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:14px 18px;overflow:hidden;white-space:pre-wrap;word-break:break-all;scrollbar-width:none;-ms-overflow-style:none}
+.prompt{font-family:var(--script);font-weight:600;font-size:17px;line-height:1.55;letter-spacing:.6px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:14px 18px;overflow:hidden;white-space:pre-wrap;word-break:break-all;scrollbar-width:none;-ms-overflow-style:none}
 .prompt::-webkit-scrollbar{display:none;width:0;height:0}
 .prompt .pwrap{height:100%;overflow:auto;scrollbar-width:none;-ms-overflow-style:none}
 .prompt .pwrap::-webkit-scrollbar{display:none;width:0;height:0}
 .prompt .pflow{white-space:pre-wrap;word-break:break-all}
 .prompt .shown{color:var(--ink)}
 .prompt .cursor{background:var(--brand);color:#fff;border-radius:2px}
-.prompt .cd{height:100%;display:flex;align-items:center;justify-content:center;font-family:var(--disp);font-size:20px;font-weight:700;color:var(--brand)}
+.prompt .cd{height:100%;display:flex;align-items:center;justify-content:center;font-family:var(--script);font-size:20px;font-weight:600;letter-spacing:.6px;color:var(--brand)}
 .prompt .up{color:transparent;text-shadow:0 0 8px rgba(92,96,104,.32);user-select:none}
 .prompt.dimline{opacity:.35}
 .player{display:flex;align-items:center;gap:12px;background:var(--brand-soft);border:1px solid var(--brand-line);border-radius:7px;padding:10px 14px;flex-wrap:wrap}
 .pctrl{width:40px;height:40px;border-radius:50%;border:0;background:var(--brand);color:#fff;font-size:15px;display:flex;align-items:center;justify-content:center;flex:0 0 40px}
 .pctrl.ghost{background:#fff;color:var(--brand);border:1.5px solid var(--brand-line)}
 .pctrl:hover{filter:brightness(1.05)}
-.p-time{font-family:'IBM Plex Mono',sans-serif;font-size:12.5px;color:var(--ink-mid);white-space:nowrap}
+.p-time{font-family:var(--script);font-size:12.5px;color:var(--ink-mid);white-space:nowrap}
 .p-time b{color:var(--brand)}
 .p-time.l-main{color:var(--ink-soft)}
 .p-time.l-main b{color:var(--ink-soft)}
@@ -173,7 +174,7 @@ table.board td.date{width:105px;text-align:center;font-family:var(--num);color:v
 /* 입력 + 채점 */
 .typing-area{display:flex;flex-direction:column;gap:6px}
 .typing-area label{font-size:12px;font-weight:700;color:var(--ink-soft)}
-.typing-area textarea{font-family:'IBM Plex Mono',sans-serif;font-weight:600;font-size:17px;line-height:1.8;padding:14px 16px;border:1.5px solid var(--line-strong);border-radius:6px;letter-spacing:.5px;background:var(--panel);color:var(--ink);-webkit-text-fill-color:var(--ink);caret-color:var(--ink);color-scheme:light;resize:vertical;min-height:190px}
+.typing-area textarea{font-family:var(--script);font-weight:600;font-size:17px;line-height:1.8;padding:14px 16px;border:1.5px solid var(--line-strong);border-radius:6px;letter-spacing:.5px;background:var(--panel);color:var(--ink);-webkit-text-fill-color:var(--ink);caret-color:var(--ink);color-scheme:light;resize:vertical;min-height:190px}
 .typing-area textarea::placeholder{color:var(--ink-soft)}
 .typing-area textarea:focus{border-color:var(--brand);outline:none}
 .btn-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
@@ -193,12 +194,12 @@ button.guarded:hover{filter:none}
 /* 채점 결과 */
 .grading{display:none;flex-direction:column;gap:12px;border:1px solid var(--line);border-radius:8px;padding:16px;background:#FBFBFC}
 .grading.show{display:flex}
-.grading h4{font-family:'IBM Plex Mono',sans-serif;font-size:14px;color:var(--ink-mid);display:flex;align-items:center;gap:8px}
-.grading h4 b{color:var(--brand);font-family:'IBM Plex Mono',sans-serif;font-size:18px}
+.grading h4{font-family:var(--script);font-size:14px;color:var(--ink-mid);display:flex;align-items:center;gap:8px}
+.grading h4 b{color:var(--brand);font-family:var(--script);font-size:18px}
 .gstats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .gstat{background:#fff;border:1px solid var(--line);border-radius:6px;padding:8px 10px;text-align:center}
 .gstat .k{font-size:11px;color:var(--ink-soft);font-weight:700}
-.gstat .v{font-family:'IBM Plex Mono',sans-serif;font-size:19px;font-weight:600}
+.gstat .v{font-family:var(--script);font-size:19px;font-weight:600}
 .gstat.jeong .v{color:var(--ok)}
 .gstat.oja .v,.gstat.tal .v{color:var(--rose)}
 .gstat.cheom .v{color:var(--blue2)}
@@ -211,7 +212,7 @@ button.guarded:hover{filter:none}
 .legend .lg-o::before{background:var(--rose-soft);border:1px solid var(--rose)}
 .legend .lg-t::before{background:#fff;border:1.5px dashed var(--rose)}
 .legend .lg-c::before{background:var(--blue2-soft);border:1px solid var(--blue2)}
-.diffbox{font-family:'IBM Plex Mono',sans-serif;font-weight:600;font-size:17px;line-height:1.9;letter-spacing:.5px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px;white-space:pre-wrap;word-break:break-all;max-height:260px;overflow:auto}
+.diffbox{font-family:var(--script);font-weight:600;font-size:17px;line-height:1.9;letter-spacing:.5px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px;white-space:pre-wrap;word-break:break-all;max-height:260px;overflow:auto}
 .diffbox .d-ok{color:#C7CACF}
 .diffbox .d-o{color:var(--rose);font-weight:700}
 .diffbox .d-t{color:#6C7C8C;font-weight:700}
@@ -227,10 +228,10 @@ button.guarded:hover{filter:none}
 .retry-tools b{color:var(--brand);font-family:var(--num)}
 .retry-pos{font-family:var(--num);font-weight:700;color:var(--ink-mid);margin-left:auto}
 #retryPrompt{min-height:74px}
-#retryTyper{font-family:'IBM Plex Mono',sans-serif;font-weight:600;font-size:17px;line-height:1.8;padding:12px 14px;border:1.5px solid var(--line-strong);border-radius:6px;background:var(--panel);color:var(--ink);-webkit-text-fill-color:var(--ink);min-height:110px;resize:vertical;width:100%}
+#retryTyper{font-family:var(--script);font-weight:600;font-size:17px;line-height:1.8;padding:12px 14px;border:1.5px solid var(--line-strong);border-radius:6px;background:var(--panel);color:var(--ink);-webkit-text-fill-color:var(--ink);min-height:110px;resize:vertical;width:100%}
 #retryTyper:focus{border-color:var(--brand);outline:none}
 /* 테스트 입력창 글자색 — 스크립트보다 살짝 연하게 (요청 7) */
-#typer{color:var(--ink-mid);color:color-mix(in srgb,var(--ink) 72%,var(--bg));-webkit-text-fill-color:var(--ink-mid);-webkit-text-fill-color:color-mix(in srgb,var(--ink) 72%,var(--bg))}
+#typer{color:var(--ink-mid);color:color-mix(in srgb,var(--ink) 66%,var(--bg));-webkit-text-fill-color:var(--ink-mid);-webkit-text-fill-color:color-mix(in srgb,var(--ink) 66%,var(--bg))}
 /* 1차 결과지 비교 (요청 2) */
 .compare{border:1px solid var(--line-strong);border-radius:8px;padding:12px 14px;background:var(--bg)}
 .compare h4{font-family:var(--disp);font-size:13.5px;color:var(--ink-mid);margin-bottom:8px}
@@ -238,7 +239,7 @@ button.guarded:hover{filter:none}
 .compare .cmp-t th,.compare .cmp-t td{border:1px solid var(--line);padding:5px 8px;text-align:center}
 .compare .cmp-t th{background:#fff;color:var(--ink-soft);font-weight:700}
 .compare .cmp-label{font-size:12px;font-weight:700;color:var(--ink-soft);margin:4px 0}
-.compare .diffbox{max-height:160px;overflow:auto;font-size:13px;font-family:'IBM Plex Mono',sans-serif}
+.compare .diffbox{max-height:160px;overflow:auto;font-size:13px;font-family:var(--script)}
 .accwrong{display:none;flex-direction:column;gap:8px;border:1px dashed var(--line-strong);border-radius:8px;padding:12px 14px;background:#fff}
 .accwrong.show{display:flex}
 .accwrong h4{font-family:var(--sans);font-size:13.5px;color:var(--ink-mid)}
@@ -247,7 +248,7 @@ button.guarded:hover{filter:none}
 .aw{display:inline-block;border:1px solid var(--line-strong);background:var(--brand-soft);border-radius:14px;padding:1px 10px;margin:2px 4px 2px 0;font-size:13px;font-weight:600;color:var(--ink)}
 .aw .awc{font-size:16px;font-weight:700}
 .aw b{color:var(--brand);font-family:var(--sans);font-weight:700;margin-left:2px}
-.retry-diff{font-family:'IBM Plex Mono',sans-serif;font-weight:600;font-size:17px;line-height:1.9;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px 12px;white-space:pre-wrap;word-break:break-all;max-height:220px;overflow:auto}
+.retry-diff{font-family:var(--script);font-weight:600;font-size:17px;line-height:1.9;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px 12px;white-space:pre-wrap;word-break:break-all;max-height:220px;overflow:auto}
 /* 듣고치기 */
 .hear-body{display:flex;flex-direction:column;gap:14px}
 .note{font-size:12px;color:var(--ink-soft);background:var(--brand-soft);border-left:3px solid var(--brand);padding:8px 12px;line-height:1.55;border-radius:0 5px 5px 0}
@@ -394,6 +395,7 @@ select.inp{font-weight:500}
   .form-row>label{width:100%;flex:0 0 100%}
   .form-row .inp{flex-basis:100%}
 }
+.grade-hidden{display:none!important}
 .toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);background:var(--brand);color:#fff;font-size:13px;font-weight:500;padding:11px 20px;border-radius:22px;box-shadow:0 6px 20px rgba(87,76,58,.25);opacity:0;pointer-events:none;transition:.22s;z-index:200}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
@@ -492,7 +494,7 @@ select.inp{font-weight:500}
         <div class="tabs-row">
           <div class="player" id="seePlayer">
             <button class="pctrl play-wide" id="btnPlay" onclick="toggleRun()" aria-label="테스트 시작"><span id="playLabel">▶ 테스트 시작</span></button>
-            <button class="pctrl ghost" onclick="rewindRun()" aria-label="처음부터" title="되감기(처음부터)">⟲</button>
+            <button class="pctrl ghost" onclick="rewindRun()" aria-label="새로고침" title="새로고침 — 테스트 내용 초기화 후 바로 시작">⟲</button>
             <span class="p-time l-main">진행 <b id="tElapsed">00:00</b></span>
             <div class="p-bar"><i id="pbar"></i></div>
             <span class="p-time">총 <b id="tTotal">00:00</b></span>
@@ -515,11 +517,11 @@ select.inp{font-weight:500}
           </div>
         </div>
         <!-- 공용: 입력 + 채점 -->
-        <div class="typing-area">
+        <div class="typing-area" id="practiceTypingArea">
           <textarea id="typer" spellcheck="false" placeholder="여기를 누르고 바로 속기하세요" aria-label="속기 입력란"></textarea>
         </div>
         <div class="btn-row">
-          <button class="btn primary" onclick="guardRun(_gradeAllInner)">채점하기</button>
+          <button class="btn primary" id="gradeBtn" onclick="guardRun(_gradeAllInner)">채점하기</button>
           <button class="btn ghost" onclick="guardRun(resetAll)">처음부터</button>
           <span class="nav-group">
             <button class="nav-tri" onclick="guardRun(goPrev)" title="이전 게시글" aria-label="이전 게시글">◀</button>
@@ -540,7 +542,7 @@ select.inp{font-weight:500}
           <span class="gnote" id="gNote"></span>
           <div class="compare" id="compareBox" style="display:none"></div>
           <div class="accwrong" id="accWrongBox">
-            <h4>누적 오답 글자 <span>채점·재테스트에서 틀린 글자 누적 · 많이 틀린 순</span></h4>
+            <h4>누적 오답 단어 <span>채점·재테스트에서 틀린 덩어리(단어·음절) 누적 · 많이 틀린 순</span></h4>
             <div class="aw-list" id="accWrongList"></div>
           </div>
           <div class="retry" id="retryBox" style="display:none">
@@ -1077,11 +1079,26 @@ function makeNsList(text){ const a=[]; for(let i=0;i<text.length;i++){ const ch=
 function cntForIdx(list,i){ let k=0; while(k<list.length && list[k]<i) k++; return k; }
 let nsList=[], rtNsList=[], rtBaseK=0;
 function rebuildNsList(){ nsList=makeNsList(target); }
+/* 문장부호(마침표·물음표·느낌표)는 직전 글자와 같은 시점에 노출 — 문장 끝임을 바로 알 수 있게 */
+function snapEndOf(text, n){
+  let k=n;
+  while(k<text.length){
+    const ch=text[k];
+    if(/[.!?]/.test(ch)){
+      const nx = k+1<text.length ? text[k+1] : "";
+      if(!nx || /[\s"”’')\]]/.test(nx)){ k++; continue; }
+    }
+    if(/[”’"']/.test(ch) && k>0 && /[.!?]/.test(text[k-1])){ k++; continue; }
+    break;
+  }
+  return k;
+}
 function revealLoop(){
   if(!running) return;
   const sec=(performance.now()-runT0)/1000;
   const k = runBaseK + Math.floor(sec*cpm/60);
-  const n = k<=0 ? 0 : (k>=nsList.length ? target.length : nsList[k-1]+1);
+  let n = k<=0 ? 0 : (k>=nsList.length ? target.length : nsList[k-1]+1);
+  n = snapEndOf(target, n);
   if(n!==revealed){ revealed=n; renderPrompt(); updateTimes(); }
   if(revealed>=target.length){ stopRun(); return; }
   rafId=requestAnimationFrame(revealLoop);
@@ -1104,16 +1121,27 @@ function updateTimes(){
 let cdTimer=null;
 function beginRun(){
   running = true; startAt = Date.now();
+  /* 테스트 시작 시 입력창으로 커서 이동 — 클릭 없이 바로 타이핑 (요청) */
+  const ty0=document.getElementById("typer");
+  if(ty0){ try{ ty0.focus({preventScroll:true}); }catch(e){ ty0.focus(); } ty0.placeholder=""; }
   runT0 = performance.now(); runBaseRevealed = revealed;
   runBaseK = cntForIdx(nsList, revealed);
   eTimer = setInterval(updateTimes, 1000);
   revealLoop();
   setGuardUI(true);
 }
+/* 채점 후에는 스크립트·테스트창을 숨기고 결과만 노출 */
+function showTestUI(on){
+  ["practiceTypingArea","gradeBtn","seePane","hearPane"].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.classList.toggle("grade-hidden", !on);
+  });
+}
 function startRun(){
   if(revealed >= target.length){ revealed = 0; firstKeyAt = lastKeyAt = null; renderPrompt(); }
   running = true;
-  document.getElementById("btnPlay").innerHTML = "\u23F8 일시정지";
+  document.getElementById("btnPlay").innerHTML = "일시정지";
+  const tyf=document.getElementById("typer");
+  if(tyf){ try{ tyf.focus({preventScroll:true}); }catch(e){ tyf.focus(); } }
   if(revealed === 0){
     const box = document.getElementById("promptBox");
     let n = 3;
@@ -1135,7 +1163,18 @@ function stopRun(){
   setGuardUI(false);
 }
 function toggleRun(){ if(running){ stopRun(); renderPrompt(); } else startRun(); }
-function rewindRun(){ stopRun(); revealed = 0; elapsedBase = 0; firstKeyAt = lastKeyAt = null; renderPrompt(); updateTimes(); }
+function rewindRun(){
+  /* 새로고침: 테스트 내용을 초기화하고 곧바로 카운트다운 → 즉시 시작 */
+  stopRun();
+  revealed = 0; elapsedBase = 0; firstKeyAt = lastKeyAt = null;
+  accWrong = {};
+  const awb=document.getElementById("accWrongBox"); if(awb) awb.classList.remove("show");
+  const ty=document.getElementById("typer"); if(ty) ty.value="";
+  const gr=document.getElementById("grading"); if(gr) gr.classList.remove("show");
+  showTestUI(true);
+  resetTimes(); renderPrompt(); updateStats(); updateTimes();
+  startRun();
+}
 /* ── 듣고치기 (데모: 브라우저 TTS) ── */
 let hCdTimer=null, hStart=null, hElapsedBase=0;
 function loopSegment(){
@@ -1156,7 +1195,7 @@ function toggleHear(){
 function startHearPlayback(text){
   playing = true;
   if(!hStart) hStart = Date.now();
-  document.getElementById("btnHear").textContent = "⏸";
+  document.getElementById("btnHear").textContent = "II";
   const body = text || target;
   document.getElementById("hbar").style.width = "0%";
   const hr0 = document.getElementById("hRemain");
@@ -1238,6 +1277,11 @@ function normMap(s){
   for(const ch of s){
     const o=pos++;
     if(/\s/.test(ch)){ if(last>=0) sp[last]=true; continue; }
+    /* 기호: 퍼센트(%)는 '퍼센트'와 동일한 답으로 인정한다 */
+    if(ch==="%" || ch==="％"){
+      for(const c of "퍼센트"){ chars.push(c); sp.push(false); oi.push(o); }
+      last=chars.length-1; continue;
+    }
     if(!/[가-힣ㄱ-ㅎ0-9a-zA-Z]/.test(ch)) continue;
     let conv;
     if(/[a-zA-Z]/.test(ch)) conv=LM[ch.toUpperCase()]||"";
@@ -1351,8 +1395,9 @@ function _gradeAllInner(){
     if(cb){ cb.style.display="none"; cb.innerHTML=""; }
   }
   document.getElementById("gNote").textContent =
-    `원문 ${R.n}자 · 입력 ${R.m}자 · 실측 ${realCpm}자/분 · 정확도 = 정자 ÷ (정자+오자+탈자+첨자) × 100 · 기호·문장부호는 제외하고 계산하며, 숫자는 입력한 그대로 숫자로 비교합니다(예: 5≠오). 띄어쓰기는 원문 기준으로 표시합니다.`;
+    `원문 ${R.n}자 · 입력 ${R.m}자 · 실측 ${realCpm}자/분 · 정확도 = 정자 ÷ (정자+오자+탈자+첨자) × 100 · 기호·문장부호는 제외하고 계산하며(%는 '퍼센트'로 인정), 숫자는 입력한 그대로 숫자로 비교합니다(예: 5≠오). 띄어쓰기는 원문 기준으로 표시합니다.`;
   document.getElementById("grading").classList.add("show");
+  showTestUI(false);   /* 채점 후 스크립트·테스트창 감춤 → 결과만 노출 */
   document.getElementById("grading").scrollIntoView({behavior:"smooth", block:"nearest"});
   /* ── 틀린문장 다시치기: 전체지문 테스트(보고치기·듣고치기 채점)에서만 노출 ── */
   const starts = sentStarts(target);
@@ -1424,6 +1469,7 @@ function startRetryFull(){
   revealed = 0; elapsedBase = 0; firstKeyAt = lastKeyAt = null;
   document.getElementById("typer").value = "";
   document.getElementById("grading").classList.remove("show");
+  showTestUI(true);
   document.getElementById("retryBox").style.display="none";
   resetTimes(); renderPrompt(); updateStats(); updateNotes();
   showToast("틀린 문장 " + wrongSents.length + "개로 다시 테스트합니다");
@@ -1458,7 +1504,8 @@ function retryLoop(){
   if(!rtRunning) return;
   const sec=(performance.now()-rtT0)/1000;
   const k = rtBaseK + Math.floor(sec*rtCpm/60);
-  const n = k<=0 ? 0 : (k>=rtNsList.length ? rtText.length : rtNsList[k-1]+1);
+  let n = k<=0 ? 0 : (k>=rtNsList.length ? rtText.length : rtNsList[k-1]+1);
+  n = snapEndOf(rtText, n);
   if(n!==rtRevealed){ rtRevealed=n; retryRenderPrompt(); updateRetryRemain(); }
   if(rtRevealed>=rtText.length){ retryStop(true); return; }
   rtRaf=requestAnimationFrame(retryLoop);
@@ -1533,16 +1580,31 @@ function prevRetry(){
 function retryAgain(){ loadRetry(); }
 let accWrong={};
 function accAddWrong(marks){
+  /* 덩어리(단어·음절) 단위 집계 — 띄어쓰기로 끊어 한 덩어리를 1건으로 센다 */
+  let buf=[], prevSp=false;
+  const flush=()=>{
+    if(!buf.length) return;
+    let key=""; const typ={o:0,t:0,x:0}, wt={};
+    buf.forEach(mk=>{
+      key += mk.c;
+      if(mk.t==="oja"){ typ.o++; if(mk.w) wt[mk.w]=(wt[mk.w]||0)+1; }
+      else if(mk.t==="tal") typ.t++;
+      else typ.x++;
+    });
+    key = key.slice(0,24);
+    if(!key){ buf=[]; return; }
+    const e=accWrong[key]||(accWrong[key]={n:0,o:0,t:0,x:0,wt:{}});
+    e.n++; e.o+=typ.o; e.t+=typ.t; e.x+=typ.x;
+    Object.keys(wt).forEach(w=>{ e.wt[w]=(e.wt[w]||0)+wt[w]; });
+    buf=[];
+  };
   marks.forEach(mk=>{
-    let c=null;
-    if(mk.t==="oja"||mk.t==="tal"||mk.t==="cheom") c=mk.c;
-    if(!c) return;
-    const e=accWrong[c]||(accWrong[c]={n:0,o:0,t:0,x:0,wt:{}});
-    e.n++;
-    if(mk.t==="oja"){ e.o++; if(mk.w) e.wt[mk.w]=(e.wt[mk.w]||0)+1; }
-    else if(mk.t==="tal") e.t++;
-    else e.x++;
+    if(mk.t==="del") return;
+    const bad=(mk.t==="oja"||mk.t==="tal"||mk.t==="cheom");
+    if(bad){ if(prevSp) flush(); buf.push(mk); prevSp=!!mk.sp; }
+    else { flush(); prevSp=!!mk.sp; }
   });
+  flush();
   renderAccWrong();
 }
 function renderAccWrong(){
@@ -1610,6 +1672,7 @@ function resetAll(){
   const awb=document.getElementById("accWrongBox"); if(awb) awb.classList.remove("show");
   document.getElementById("typer").value = "";
   document.getElementById("grading").classList.remove("show");
+  showTestUI(true);
   const rb=document.getElementById("retryBox"); if(rb) rb.style.display="none";
   const cb=document.getElementById("compareBox"); if(cb){ cb.style.display="none"; cb.innerHTML=""; }
   resetTimes();
