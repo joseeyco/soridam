@@ -25,6 +25,7 @@ jobs:
           python collect_editorials.py
           python collect_reads.py
           python collect_speech.py || echo "연설체 후보 없음 — 스킵"
+          python collect_qa.py || echo "Q&A 후보 없음 — 스킵"
           python renumber.py
 
       - name: 결과 커밋
