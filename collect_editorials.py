@@ -182,6 +182,73 @@ def normalize_text(t):
     t = re.sub(r"\s{2,}", " ", t)
     return t
 
+# ─────────────────────────────────────────────────────────────
+# 문장·띄어쓰기 재검토(교정) — 띄어쓰기 오류 검증 + 맥락에 맞지 않는 조각 정리
+# ─────────────────────────────────────────────────────────────
+JOSA_ATTACH = ("은", "는", "이", "가", "을", "를", "의", "에", "에서", "에게", "께서", "도", "만",
+               "와", "과", "로", "으로", "처럼", "보다", "까지", "부터", "밖에", "마저", "조차",
+               "이며", "이고", "이란", "라는", "라고", "이다", "입니다", "였다", "한다", "했다",
+               "된다", "됐다", "하는", "한", "할", "해서", "하면", "해도", "하지", "인", "적인")
+PARTICLE_HEAD = re.compile(r"^(은|는|이|가|을|를|의|에|에서|와|과|로|으로|도|만|며|고|나|면|라고|라는)\s")
+UNIT_ATTACH = re.compile(r"(\d)\s+(명|개|곳|건|원|년|월|일|시|분|초|위|배|퍼센트|조|억|만|천|시간|개국|포인트|쪽|차|회|번|살|세|층|호|개사)")
+SPACE_BEFORE_PUNCT = re.compile(r"\s+([,.!?%)\]】」』”’])")
+SPACE_AFTER_OPEN = re.compile(r"([(\[【「『“‘])\s+")
+DUP_PUNCT = re.compile(r"([,.!?])\1+")
+BAD_TAIL = re.compile(r"(무단\s*전재|재배포\s*금지|ⓒ|Copyright|저작권자)", re.I)
+
+
+def polish_spacing(t):
+    """띄어쓰기 교정: 여는 괄호·따옴표 뒤 공백, 문장부호 앞 공백, 숫자+단위, 조사·어미 붙여쓰기."""
+    t = SPACE_AFTER_OPEN.sub(r"\1", t)
+    t = SPACE_BEFORE_PUNCT.sub(r"\1", t)
+    t = UNIT_ATTACH.sub(r"\1\2", t)
+    t = DUP_PUNCT.sub(r"\1", t)
+    for j in JOSA_ATTACH:                     # '정부 가' → '정부가' 처럼 조사는 앞말에 붙인다
+        t = re.sub(rf"([가-힣])\s+({j})(?=[\s,.!?\"'”’)\]]|$)", r"\1\2", t)
+    t = re.sub(r"\s{2,}", " ", t)
+    return t.strip()
+
+
+def polish_text(t):
+    """수집 원문 재검토: 잘린 조각 병합 → 중복·잡음 문장 제거 → 문장부호 정리 → 띄어쓰기 교정."""
+    if not t:
+        return t
+    t = t.replace("\\엔", " ").replace("\u200b", " ")
+    sents = []
+    for para in t.split("\n"):
+        para = para.strip()
+        if not para:
+            continue
+        for x in SENT_SPLIT.split(para):
+            x = x.strip()
+            if x:
+                sents.append(x)
+    merged = []
+    for x in sents:
+        if BAD_TAIL.search(x):
+            continue
+        # 앞 문장이 끝나지 않았는데 조사·연결어미로 시작하면 잘린 조각 → 앞 문장에 붙인다
+        if merged and (PARTICLE_HEAD.match(x) or re.match(r"^[a-z(]", x)) and not re.search(r"[.!?…]$", merged[-1]):
+            merged[-1] = merged[-1].rstrip() + " " + x
+        else:
+            merged.append(x)
+    out = []
+    for x in merged:
+        x = re.sub(r"\s{2,}", " ", x).strip()
+        if len(re.sub(r"\s", "", x)) < 8 and not re.search(r"[.!?…]$", x):
+            continue                          # 캡션·바이라인 잔여 조각 제거
+        if x in out:
+            continue                          # 같은 문장이 반복되면 한 번만 남긴다
+        out.append(x)
+    fixed = []
+    for x in out:
+        if not re.search(r"[.!?…\"'”’)\]]$", x):
+            x += "."
+        fixed.append(x)
+    body = polish_spacing(" ".join(fixed))
+    return re.sub(r"\s{2,}", " ", body).strip()
+
+
 def with_outlet(outlet, title):
     return f"[{outlet}] {clean_title(title)}"
 
@@ -568,7 +635,7 @@ def collect_outlet(name, domain, hist, min_chars=MIN_CHARS, allow_excerpt=True):
         txt = extract_text(c["url"], domain)
         if not txt:
             continue
-        txt = normalize_text(strip_annotations(txt))
+        txt = polish_text(normalize_text(strip_annotations(txt)))
         orig = nospace(txt)
         if orig < min_chars:
             continue
