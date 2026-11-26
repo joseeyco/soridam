@@ -676,9 +676,14 @@ select.inp{font-weight:500}
         </div>
       </div>
       <div class="chart-card">
-        <h3>취약 글자 상세</h3>
-        <div class="desc">자주 틀린 단어 — <b>단어 행을 클릭</b>하면 단어장에 추가하고 단어장 관리로 이동합니다</div>
+        <h3>자주 틀린 단어 (한글)</h3>
+        <div class="desc">단어 행을 클릭하면 단어장에 추가하고 단어장 관리로 이동합니다</div>
         <div class="bars" id="wordChart"></div>
+      </div>
+      <div class="chart-card">
+        <h3>자주 틀린 숫자</h3>
+        <div class="desc">숫자·단위 받아쓰기 취약 항목 — 클릭하면 단어장(숫자)에 추가합니다</div>
+        <div class="bars" id="numChart"></div>
       </div>
     </div>
     <!-- ═══ 6. 단어장 관리 ═══ -->
@@ -692,7 +697,8 @@ select.inp{font-weight:500}
         <button class="chip" data-vf="auto" onclick="setVFilt('auto',this)">오답 수집</button>
         <button class="chip" data-vf="manual" onclick="setVFilt('manual',this)">직접 추가</button>
         <span style="margin-left:auto"></span>
-        <button class="chip mini" onclick="startVocabTest()">단어장 낭독 테스트</button>
+        <button class="chip mini" onclick="startVocabTest('ko')">한글 낭독 테스트</button>
+        <button class="chip mini" onclick="startVocabTest('num')">숫자 낭독 테스트</button>
       </div>
       <div class="settings" style="margin-top:0;margin-bottom:12px">
         <div class="set-row compact">
@@ -1153,18 +1159,22 @@ function startHearPlayback(text){
   document.getElementById("btnHear").textContent = "⏸";
   const body = text || target;
   document.getElementById("hbar").style.width = "0%";
-  const u = new SpeechSynthesisUtterance(body);
-  u.lang = "ko-KR"; u.rate = LV[lv].rate;
-  u.onend = ()=>{
-    if(!playing) return;
-    document.getElementById("hbar").style.width = "100%";
-    clearInterval(window.__hb);
-    if(loopOne && !text){ setTimeout(()=>{ if(playing) startHearPlayback(loopSegment()); }, 300); }
-    else stopHear();
+  const hr0 = document.getElementById("hRemain");
+  if(hr0) hr0.textContent = "2초 후 시작";
+  const playBody = ()=>{
+    const u = new SpeechSynthesisUtterance(body);
+    u.lang = "ko-KR"; u.rate = LV[lv].rate;
+    u.onend = ()=>{
+      if(!playing) return;
+      document.getElementById("hbar").style.width = "100%";
+      clearInterval(window.__hb);
+      if(loopOne && !text){ setTimeout(()=>{ if(playing) startHearPlayback(loopSegment()); }, 300); }
+      else stopHear();
+    };
+    speechSynthesis.speak(u);
   };
-  speechSynthesis.cancel();
-  speechSynthesis.speak(u);
-  const totalS = body.length * 0.14 / LV[lv].rate;
+  setTimeout(playBody, LEAD_MS);
+  const totalS = body.length * 0.14 / LV[lv].rate + LEAD_MS/1000;
   const t0 = Date.now();
   const bar = document.getElementById("hbar"); let w = 0;
   clearInterval(window.__hb);
@@ -1660,6 +1670,9 @@ function showToast(msg){
   toastTimer = setTimeout(()=>t.classList.remove("show"), 2400);
 }
 /* ── 유틸 ─────────────────── */
+const kindOf=w=>(/^[0-9.,%\-\/\s\uFF10-\uFF19]+$/.test(String(w))&&/[0-9\uFF10-\uFF19]/.test(String(w)))?"num":"ko";
+const LEAD_MS=2000;
+function speakWithLead(say, ms){ try{ speechSynthesis.cancel(); }catch(e){} setTimeout(()=>{ try{ say(); }catch(e){} }, ms||LEAD_MS); }
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function relDate(ts){
   if(!ts) return "-";
@@ -1773,7 +1786,7 @@ function wordAt(mT, i){
   return w.trim();
 }
 function collectErrors(marks, mT){
-  const pairs=[], words={};
+  const pairs=[], words={}, wordsNum={};
   marks.forEach(mk=>{
     if(mk.t==="oja") pairs.push({c:mk.c, w:mk.w});
     else if(mk.t==="tal") pairs.push({c:mk.c, w:""});
@@ -1783,16 +1796,14 @@ function collectErrors(marks, mT){
     if(mk.t!=="oja" && mk.t!=="tal") return;
     const w = wordAt(mT, mk.ti);
     if(!w || w.length<2) return;
-    words[w] = (words[w]||0)+1;
+    if(kindOf(w)==="num") wordsNum[w]=(wordsNum[w]||0)+1;
+    else words[w]=(words[w]||0)+1;
   });
   /* 세션당 수집 상한 — 입력이 크게 부족해 단어가 폭주하는 것을 막는다 */
-  const picked = topN(words, 25);
-  const wm = sGet("words", {});
-  picked.forEach(([w,n])=>{
-    wm[w] = (wm[w]||0)+n;
-    addVocabWord(w, n, true);
-  });
-  sSet("words", wm);
+  const wm = sGet("words", {}), nm = sGet("words_num", {});
+  topN(words, 25).forEach(([w,n])=>{ wm[w]=(wm[w]||0)+n; addVocabWord(w, n, true); });
+  topN(wordsNum, 25).forEach(([w,n])=>{ nm[w]=(nm[w]||0)+n; addVocabWord(w, n, true); });
+  sSet("words", wm); sSet("words_num", nm);
 }
 /* ── 단어장 ─────────────────── */
 function getVocab(){ const v = sGet("vocab", []); return Array.isArray(v)?v:[]; }
@@ -1841,36 +1852,44 @@ function renderVocab(){
     box.innerHTML = `<div class="empty"><b>${all.length ? "조건에 맞는 단어가 없습니다" : "아직 모은 단어가 없습니다"}</b>연습 후 채점하면 틀린 단어가 자동으로 모입니다.<br>위 입력창으로 직접 추가할 수도 있습니다.</div>`;
     return;
   }
-  box.innerHTML = `<div class="vlist">` + vListNow.map((v,i)=>`
+  const row=(v,i)=>`
     <div class="vitem">
       <span class="w">${esc(v.w)}</span>
-      <span class="tag ${v.manual ? "" : "auto"}">${v.manual ? "직접 추가" : "오답 수집"}</span>
+      <span class="tag ${kindOf(v.w)==="num" ? "rose" : (v.manual ? "" : "auto")}">${kindOf(v.w)==="num" ? "숫자" : (v.manual ? "직접 추가" : "오답 수집")}</span>
       <span class="m">${v.cnt||1}회 · ${relDate(v.last)}</span>
       <span class="acts">
         <button class="chip mini" onclick="speakVocab(${i})" title="소리로 듣기">▶</button>
         <button class="icon-btn" onclick="delVocab('${esc(v.w)}')" title="삭제" aria-label="삭제">✕</button>
       </span>
-    </div>`).join("") + `</div>`;
+    </div>`;
+  const ko=vListNow.map((v,i)=>[v,i]).filter(([v])=>kindOf(v.w)==="ko");
+  const num=vListNow.map((v,i)=>[v,i]).filter(([v])=>kindOf(v.w)==="num");
+  box.innerHTML = (ko.length? `<div class="cmp-label">한글 단어 ${ko.length}개</div><div class="vlist">`+ko.map(([v,i])=>row(v,i)).join("")+`</div>` : "")
+    + (num.length? `<div class="cmp-label" style="margin-top:10px">숫자 ${num.length}개</div><div class="vlist">`+num.map(([v,i])=>row(v,i)).join("")+`</div>` : "")
+    + (!ko.length&&!num.length? `<div class="empty">조건에 맞는 항목이 없습니다</div>` : "");
 }
 function speakVocab(i){
   const v = vListNow[i]; if(!v) return;
   try{
     speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(v.w);
-    u.lang="ko-KR"; u.rate=0.85;
-    speechSynthesis.speak(u);
+    speakWithLead(()=>{
+      const u = new SpeechSynthesisUtterance(v.w);
+      u.lang="ko-KR"; u.rate=0.85;
+      speechSynthesis.speak(u);
+    });
   }catch(e){ showToast("이 브라우저는 음성 재생을 지원하지 않습니다"); }
 }
 /* 단어장 낭독 테스트 */
-let vocabTestWord="";
-function startVocabTest(){
-  const list = getVocab();
-  if(!list.length){ showToast("단어장이 비어 있습니다"); return; }
+let vocabTestWord="", vocabTestKind="ko";
+function startVocabTest(kind){
+  vocabTestKind = kind||"ko";
+  const pool = getVocab().filter(v=>kindOf(v.w)===vocabTestKind);
+  if(!pool.length){ showToast(vocabTestKind==="num" ? "수집된 숫자가 아직 없습니다" : "수집된 한글 단어가 아직 없습니다"); return; }
   const card = document.getElementById("vocabTestCard");
   if(card) card.style.display="block";
-  vocabTestWord = list[Math.floor(Math.random()*list.length)].w;
+  vocabTestWord = pool[Math.floor(Math.random()*pool.length)].w;
   const q = document.getElementById("vocabQuote");
-  if(q) q.innerHTML = `<span class="mask">${esc(vocabTestWord)}</span>`;
+  if(q) q.innerHTML = `<span class="mask">${esc(vocabTestWord)}</span><div class="type-hint" style="margin-top:6px">2초 후 낭독됩니다…</div>`;
   const r = document.getElementById("vocabTestRes"); if(r) r.innerHTML="";
   const inp = document.getElementById("vocabAnswer"); if(inp) inp.value="";
   speakVocabWord(vocabTestWord);
@@ -1878,10 +1897,11 @@ function startVocabTest(){
 }
 function speakVocabWord(w){
   try{
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(w);
-    u.lang="ko-KR"; u.rate=0.85;
-    speechSynthesis.speak(u);
+    speakWithLead(()=>{
+      const u = new SpeechSynthesisUtterance(w);
+      u.lang="ko-KR"; u.rate=0.85;
+      speechSynthesis.speak(u);
+    });
   }catch(e){}
 }
 function closeVocabTest(){
@@ -2088,9 +2108,24 @@ function renderStats(){
     }
   }
   const words = sGet("words", {});
+  const numWords = sGet("words_num", {});
+  const numChart = document.getElementById("numChart");
+  if(numChart){
+    const tn = topN(numWords, 15);
+    if(!tn.length) numChart.innerHTML = `<div class="empty">아직 틀린 숫자가 없습니다 — 채점할 때 숫자를 틀리면 모입니다</div>`;
+    else{
+      const max = tn[0][1];
+      numChart.innerHTML = tn.map(([k,v])=>`
+        <div class="bar-row">
+          <span class="bar-lbl" data-w="${esc(k)}" onclick="weakWordToVocab(this)" style="font-family:var(--num);width:118px;flex:0 0 118px;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;text-decoration:underline dotted">${esc(k)}</span>
+          <span class="bar-track"><i class="bar-fill rose" style="width:${Math.max(4, v/max*100)}%"></i></span>
+          <span class="bar-n">${v}회</span>
+        </div>`).join("");
+    }
+  }
   const wordChart = document.getElementById("wordChart");
   if(wordChart){
-    const t = topN(words, 15);
+    const t = topN(Object.fromEntries(Object.entries(words).filter(([k])=>kindOf(k)!=="num")), 15);
     if(!t.length) wordChart.innerHTML = `<div class="empty">자주 틀린 단어가 없습니다</div>`;
     else{
       const max = t[0][1];
@@ -2132,15 +2167,16 @@ function ttsSpeak(){
   const e = editorials[ttsIdx];
   const rate = +(document.getElementById("ttsRate")||{value:1}).value;
   try{
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance((e.body||"").replace(/\\엔/g,"\n"));
-    u.lang="ko-KR"; u.rate=rate;
-    speechSynthesis.speak(u);
+    speakWithLead(()=>{
+      const u = new SpeechSynthesisUtterance((e.body||"").replace(/\\엔/g,"\n"));
+      u.lang="ko-KR"; u.rate=rate;
+      speechSynthesis.speak(u);
+      if(!ttsTimer){ ttsStart = Date.now(); ttsTimer = setInterval(()=>{
+        const el = document.getElementById("ttsElapsed");
+        if(el) el.textContent = fmt(ttsElapsed + (Date.now()-ttsStart)/1000);
+      }, 250); }
+    });
   }catch(err){}
-  if(!ttsTimer){ ttsStart = Date.now(); ttsTimer = setInterval(()=>{
-    const el = document.getElementById("ttsElapsed");
-    if(el) el.textContent = fmt(ttsElapsed + (Date.now()-ttsStart)/1000);
-  }, 250); }
   const p = document.getElementById("ttsPlay");
   if(p) p.textContent = "▶ 낭독 중";
 }

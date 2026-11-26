@@ -146,9 +146,23 @@ def clean_title(t):
         if s == before:
             break
     s = strip_annotations(s)
+    s = normalize_text(s)
     s = re.sub(r"^[\s\-–—:·|]+", "", s)
     return re.sub(r"\s+", " ", s).strip()
 
+
+LATIN2KO = {"a":"에이","b":"비","c":"씨","d":"디","e":"이","f":"에프","g":"지","h":"에이치","i":"아이","j":"제이","k":"케이","l":"엘","m":"엠","n":"엔","o":"오","p":"피","q":"큐","r":"알","s":"에스","t":"티","u":"유","v":"브이","w":"더블유","x":"엑스","y":"와이","z":"제이"}
+LATIN_RE = re.compile(r"[A-Za-z]")
+SYMBOL_RE = re.compile(r"[\u2018\u2019\u201c\u201d\u3008\u3009\u300c\u300d\u300e\u300f\u00ab\u00bb\u2039\u203a<>\"'`\u00b7\u2025\u2026\u2013\u2014\u2010\u2011\u2212\uff0b\u2260\u2264\u2265\u2192\u2190\u2191\u2193\u00a9\u00ae\u2113\u203b\u25c6\u25cf\u25aa\u25a1\u25cb\u25b3\u2211\u00b1\u00d7]")
+
+def normalize_text(t):
+    """기호 최소화 + 영문 → 한글 음차 (예: k→케이, ai→에이아이, %→퍼센트)"""
+    t = str(t)
+    t = SYMBOL_RE.sub(" ", t)
+    t = t.replace("%", "퍼센트")
+    t = LATIN_RE.sub(lambda m: LATIN2KO[m.group(0).lower()], t)
+    t = re.sub(r"\s{2,}", " ", t)
+    return t
 
 def with_outlet(outlet, title):
     return f"[{outlet}] {clean_title(title)}"
@@ -536,7 +550,7 @@ def collect_outlet(name, domain, hist, min_chars=MIN_CHARS, allow_excerpt=True):
         txt = extract_text(c["url"], domain)
         if not txt:
             continue
-        txt = strip_annotations(txt)
+        txt = normalize_text(strip_annotations(txt))
         orig = nospace(txt)
         if orig < min_chars:
             continue
