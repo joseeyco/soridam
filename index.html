@@ -65,6 +65,8 @@ aside.side{display:flex;flex-direction:column;gap:4px}
 .side a.on{background:var(--brand-soft);color:var(--brand);font-weight:700}
 .side .dot{width:7px;height:7px;border-radius:50%;background:var(--line-strong);flex:0 0 auto}
 .side a.on .dot{background:var(--brand)}
+.side a.sub-item{padding-left:36px;font-size:12.5px;color:var(--ink-mid)}
+.side a.sub-item:hover{background:var(--brand-soft)}
 .side .help{margin-top:14px;border:1px solid var(--line);background:#fff;border-radius:8px;padding:12px;font-size:12px;color:var(--ink-soft);line-height:1.6}
 @media(max-width:860px){.side .help{display:none}}
 main.content{min-width:0}
@@ -452,10 +454,10 @@ select.inp{font-weight:500}
   <div class="backdrop" id="backdrop" onclick="closeDrawers()"></div>
   <!-- 좌측 메뉴 -->
   <aside class="side" id="side">
-    <a href="#" class="on" data-page="pageList" onclick="goPage('pageList',event)"><span class="dot"></span>사설 연습</a>
+    <a href="#" class="on" data-page="pageList" data-rtype="editorial" onclick="goPage('pageList',event)"><span class="dot"></span>사설 연습</a>
     <a href="#" data-page="pageTTS" onclick="goPage('pageTTS',event)"><span class="dot"></span>낭독 테스트</a>
-    <a href="#" data-page="pageList" onclick="goReadTypeNav('speech',event)"><span class="dot"></span>연설체 연습</a>
-    <a href="#" data-page="pageList" onclick="goReadTypeNav('column',event)"><span class="dot"></span>논설체 연습</a>
+    <a href="#" class="sub-item" data-page="pageList" data-rtype="speech" onclick="goReadTypeNav('speech',event)">연설체 연습</a>
+    <a href="#" class="sub-item" data-page="pageList" data-rtype="column" onclick="goReadTypeNav('column',event)">논설체 연습</a>
     <a href="#" data-page="pageHistory" onclick="goPage('pageHistory',event)"><span class="dot"></span>연습 기록</a>
     <a href="#" data-page="pageStats" onclick="goPage('pageStats',event)"><span class="dot"></span>취약 글자 통계</a>
     <a href="#" data-page="pageVocab" onclick="goPage('pageVocab',event)"><span class="dot"></span>단어장 관리</a>
@@ -815,6 +817,8 @@ select.inp{font-weight:500}
 </footer>
 <script>
 let READ_TYPE="editorial";
+const READ_LABEL={editorial:"사설",speech:"연설체",column:"논설체"};
+let _loadedReadType="";
 let _mainReload=null;
 /* ── 샘플 데이터 (실제 구현 시 매일 자동 수집·갱신) ── */
 const editorials = [
@@ -908,7 +912,7 @@ function openDetail(i, skipPush){
   const lp=document.getElementById("listPop"); if(lp) lp.style.display="none";
   cur = i;
   const e = editorials[i];
-  document.getElementById("dNo").textContent = `사설 ${String(e.no).padStart(2,"0")}`;
+  document.getElementById("dNo").textContent = `${READ_LABEL[READ_TYPE]||"사설"} ${String(e.no).padStart(2,"0")}`;
   document.getElementById("dTitle").textContent = cleanTitle(e.title);
   document.getElementById("dSrc").textContent = e.src;
   const dd=document.getElementById("dDate"); if(dd) dd.textContent = edDate(e);
@@ -1876,7 +1880,8 @@ function pct(part, all){ return all>0 ? Math.round(part/all*100) : 0; }
 /* ── 페이지 전환 ─────────────────── */
 function setSideActive(pageId){
   document.querySelectorAll("aside.side a[data-page]").forEach(a=>a.classList.remove("on"));
-  const link = document.querySelector(`aside.side a[data-page="${pageId}"]`);
+  let link = document.querySelector(`aside.side a[data-page="${pageId}"][data-rtype="${READ_TYPE}"]`);
+  if(!link) link = document.querySelector(`aside.side a[data-page="${pageId}"]:not([data-rtype])`);
   if(link) link.classList.add("on");
 }
 function goReadTypeNav(t, ev){
@@ -2543,7 +2548,7 @@ document.addEventListener("keydown", ev=>{
 (async function pullDailyEditorials(){
   _mainReload=pullDailyEditorials;
   const days=[];
-  for(let k=0;k<7;k++){ const d=new Date(); d.setDate(d.getDate()-k); days.push(fmtDate(d)); }
+  for(let k=0;k<120;k++){ const d=new Date(); d.setDate(d.getDate()-k); days.push(fmtDate(d)); }
   const got=[];
   await Promise.all(days.map(async dt=>{
     try{
@@ -2566,17 +2571,30 @@ document.addEventListener("keydown", ev=>{
     }catch(e){ /* 해당 날짜 파일이 없으면 건너뜀 */ }
   }));
   if(!got.length) return;
-  const seen = new Set(editorials.map(e=>(e.title||"").trim()));
-  const add = got.filter(e=>{ const k=e.title; if(seen.has(k)) return false; seen.add(k); return true; });
-  if(!add.length) return;
-  add.forEach(e=>editorials.push(e));
-  editorials.sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));
+  /* 유형(사설/연설체/논설체) 혼입 방지: 유형이 바뀌면 목록을 완전히 교체 */
+  const typeChanged = (_loadedReadType !== READ_TYPE);
+  _loadedReadType = READ_TYPE;
+  let addN = 0;
+  if(typeChanged){
+    const seen = new Set();
+    const fresh = got.filter(e=>{ const k=e.title; if(seen.has(k)) return false; seen.add(k); return true; });
+    editorials.length = 0;
+    fresh.forEach(e=>editorials.push(e));
+    addN = fresh.length;
+  } else {
+    const seen = new Set(editorials.map(e=>(e.title||"").trim()));
+    got.forEach(e=>{ const k=e.title; if(seen.has(k)) return; seen.add(k); editorials.push(e); addN++; });
+  }
+  if(!editorials.length) return;
+  /* 과거 첫 글을 1번으로: 날짜 오름차순 누적 번호 → 게시판은 최신 글이 위 */
+  editorials.sort((a,b)=>String(a.date||"").localeCompare(String(b.date||"")));
   editorials.forEach((e,i)=>e.no=i+1);
+  editorials.sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));
   cur = 0; ttsIdx = 0;
   renderBoard(); renderRail();
   const sel = document.getElementById("ttsPick"); if(sel) sel.innerHTML = "";
   loadTts(); resetAll(); updateFootStat();
-  showToast("자동수집 사설 " + add.length + "편을 새로 불러왔습니다");
+  showToast("자동수집 " + (READ_LABEL[READ_TYPE]||"사설") + " " + addN + "편을 새로 불러왔습니다");
 })();
 </script>
 </body>

@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
-"""낭독 스크립트 수집기 v1 — 연설체(speech) / 논설체(column) 매일 1편씩
-기준: 속기 기출 스타일 · 최신 연설/논설문 · 700~1,090자(공백 제외) · 일 1편 · 과거 수집분 중복 금지
-논설체: 각 신문사의 [기고]/[칼럼]/[논설] (Bing News RSS)
-연설체: 연설·축사·기자회견 '전문' 게시 기사 본문"""
+"""논설체 수집기 v2 — 논설체(column) 매일 5편 (연설체는 collect_speech.py가 담당)
+기준: 속기 기출 스타일 · 최신 논설문 · 700~1,090자(공백 제외) · 일 5편 · 과거 수집분 중복 금지
+논설체: 각 신문사의 [기고]/[칼럼]/[논설] (Bing News RSS) — 유형별 혼입 방지를 위해 연설체는 수집하지 않음"""
 import os, re, json, sys, time, glob as g
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -54,11 +53,16 @@ def prev_seen(outdir):
         except Exception: pass
     return prev
 
-def pick_one(kind, queries, tfilter, min_chars=700):
+PICK = 5  # 하루 수집 편수
+
+def pick_many(kind, queries, tfilter, count=PICK, min_chars=700):
     outdir=OUT[kind]; os.makedirs(outdir, exist_ok=True)
     prev=prev_seen(outdir)
+    picked=[]
     for name,dom in ce.OUTLETS.items():
+        if len(picked)>=count: break
         for c in bing_pool([q.format(d=dom) for q in queries], tfilter):
+            if len(picked)>=count: break
             if ce.norm_url(c['url']) in prev or ce.title_key(c['title']) in prev: continue
             txt=ce.extract_text(c['url'], dom)
             if not txt: continue
@@ -68,17 +72,24 @@ def pick_one(kind, queries, tfilter, min_chars=700):
             fitted,exc=(ce.fit_length(txt) if orig>=1090 else (txt,False))
             if not fitted: continue
             n=ce.nospace(fitted)
-            entry={'no':1,'date':ce.TODAY.strftime('%Y-%m-%d'),'title':ce.clean_title(c['title']),
+            entry={'no':len(picked)+1,'date':ce.TODAY.strftime('%Y-%m-%d'),'title':ce.clean_title(c['title']),
                    'src':name,'chars':n,'orig_chars':orig,'excerpted':exc,'relaxed':False,
                    'lv':1 if n<=850 else (2 if n<=1000 else 3),'pub':c['pub'],'url':c['url'],'body':fitted,'type':kind}
-            out={'date':entry['date'],'type':kind,'criteria':'속기 기출 스타일 · 최신 연설/논설문 · 700~1,090자(공백 제외) · 일 1편 · 과거 수집분 중복 금지','picked':[entry]}
-            json.dump(out, open(f"{outdir}/{entry['date']}.json",'w',encoding='utf-8'), ensure_ascii=False, indent=1)
-            print(f"{kind} OK: [{name}] {entry['title'][:44]} ({n}자)", flush=True)
-            return True
+            picked.append(entry)
+            prev.add(ce.norm_url(c['url'])); prev.add(ce.title_key(c['title']))
+            print(f"{kind} OK ({len(picked)}/{count}): [{name}] {entry['title'][:44]} ({n}자)", flush=True)
+            break  # 신문사당 1편 — 다양한 매체의 논설문이 고루 수집되도록
         time.sleep(0.6)
-    print(f"{kind} FAIL: 기준에 맞는 후보 없음", file=sys.stderr, flush=True)
-    return False
+    if not picked:
+        print(f"{kind} FAIL: 기준에 맞는 후보 없음", file=sys.stderr, flush=True)
+        return 0
+    today=ce.TODAY.strftime('%Y-%m-%d')
+    out={'date':today,'type':kind,
+         'criteria':'속기 기출 스타일 · 최신 논설문 · 700~1,090자(공백 제외) · 일 5편 · 과거 수집분 중복 금지',
+         'picked':picked}
+    json.dump(out, open(f"{outdir}/{today}.json",'w',encoding='utf-8'), ensure_ascii=False, indent=1)
+    print(f"{kind} 저장: {outdir}/{today}.json ({len(picked)}편)", flush=True)
+    return len(picked)
 
-ok_c=pick_one('column', ['"[기고]" site:{d}','"[칼럼]" site:{d}','"[논설]" site:{d}'], is_column)
-ok_s=pick_one('speech', ['연설 전문 site:{d}','축사 전문 site:{d}','기자회견 전문 site:{d}','연설문 site:{d}'], is_speech)
-sys.exit(0 if ok_c else 1)  # 연설체는 collect_speech.py가 담당
+n_c=pick_many('column', ['"[기고]" site:{d}','"[칼럼]" site:{d}','"[논설]" site:{d}'], is_column)
+sys.exit(0 if n_c>0 else 1)  # 연설체는 collect_speech.py가 담당

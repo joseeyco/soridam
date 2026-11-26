@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """연설체 수집기 v2.1 — 대통령실 연설문 자료실(president.go.kr/speeches) 기반
-기준: 속기 기출 스타일 · 최신 대통령 연설 전문 · 700~1,090자(공백 제외) · 일 1편 · 과거 수집분 중복 금지
+기준: 속기 기출 스타일 · 최신 대통령 연설 전문 · 700~1,090자(공백 제외) · 일 5편 · 과거 수집분 중복 금지
 목록은 사이트맵(/sitemap.xml)과 raw 페이지에서, 본문은 상세 페이지(서버렌더)에서 추출"""
 import os, re, json, sys, html as H
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -55,12 +55,17 @@ def prev_seen():
         except Exception: pass
     return prev
 
+PICK = 5  # 하루 수집 편수
+
 def main():
     os.makedirs(OUTDIR, exist_ok=True)
     prev=prev_seen()
     urls=candidate_urls()
     print(f"후보 URL {len(urls)}개", flush=True)
+    today=ce.TODAY.strftime('%Y-%m-%d')
+    picked=[]
     for url in urls:
+        if len(picked)>=PICK: break
         if url in prev: continue
         try: title, body=get_detail(url)
         except Exception as e:
@@ -70,15 +75,21 @@ def main():
         if n<700:
             print(f"짧음({n}자): {url}"); continue
         title=title or fitted.split("\n")[0][:40]
-        today=ce.TODAY.strftime('%Y-%m-%d')
-        entry={'no':1,'date':today,'title':f"[대통령실] {ce.clean_title(title)}",'src':'대통령실 연설문 자료실',
-               'chars':n,'orig_chars':n,'excerpted':n>1090,'relaxed':False,
-               'lv':1 if n<=850 else (2 if n<=1000 else 3),'pub':today,'url':url,'body':fitted,'type':'speech'}
-        out={'date':today,'type':'speech','criteria':'대통령실 연설문 자료실 · 최신 연설 전문 · 700~1,090자(공백 제외) · 일 1편 · 과거 수집분 중복 금지','picked':[entry]}
-        json.dump(out, open(f"{OUTDIR}/{today}.json",'w',encoding='utf-8'), ensure_ascii=False, indent=1)
-        print(f"speech OK: [{ce.clean_title(title)[:40]}] ({n}자) {url}", flush=True)
-        return 0
-    print("speech FAIL: 새 후보 없음", file=sys.stderr, flush=True)
-    return 1
+        entry={'no':len(picked)+1,'date':today,'title':f"[대통령실] {ce.clean_title(title)}",
+               'src':'대통령실 연설문 자료실','chars':n,'orig_chars':n,
+               'excerpted':n>1090,'relaxed':False,
+               'lv':1 if n<=850 else (2 if n<=1000 else 3),
+               'pub':today,'url':url,'body':fitted,'type':'speech'}
+        picked.append(entry)
+        print(f"speech OK ({len(picked)}/{PICK}): [{ce.clean_title(title)[:40]}] ({n}자) {url}", flush=True)
+    if not picked:
+        print("speech FAIL: 새 후보 없음", file=sys.stderr, flush=True)
+        return 1
+    out={'date':today,'type':'speech',
+         'criteria':'대통령실 연설문 자료실 · 최신 연설 전문 · 700~1,090자(공백 제외) · 일 5편 · 과거 수집분 중복 금지',
+         'picked':picked}
+    json.dump(out, open(f"{OUTDIR}/{today}.json",'w',encoding='utf-8'), ensure_ascii=False, indent=1)
+    print(f"speech 저장: {OUTDIR}/{today}.json ({len(picked)}편)", flush=True)
+    return 0
 
 sys.exit(main())
