@@ -12,6 +12,9 @@ v5 변경점 (v4 대비)
  7) 신문사 순서 편향 제거     : 날짜 시드로 신문사 순서를 섞어서 선택
  8) 괄호 제거 범위 축소       : 영문·한자가 들어있는 괄호만 제거 ((1.5%) 같은 숫자 괄호는 유지)
  9) SSL 인증서 검증 켬, 네트워크 재시도 추가
+10) 기사 아닌 조각 제거   : 내비게이션·머리기사 목록·요약문구·브랜드 한글 표기
+                               ('구글에서 서울신문 먼저 보기', '#대출규제 풍선 효과',
+                                '엠에이이아이엘 비유에스…', '2026년 11월 28일 (토)' 등)
 유지: [신문사] 제목 헤더 · 길이 오름차순 1~10번
 """
 import os, re, json, sys, ssl, time, random, html as H, unicodedata
@@ -424,6 +427,93 @@ BYLINE = re.compile(r"((논설|선임|수석|전문|편집|객원)?위원|기자
 CAPTION = re.compile(r"^\s*[\[(]?\s*(사진|그래픽|일러스트|이미지|자료|영상)\s*[=:/)\]]")
 
 
+# ─────────────────────────────────────────────────────────────
+# 기사가 아닌 조각 제거 (내비게이션·머리기사 목록·요약문구·브랜드 표기)
+#   예) '구글에서 서울신문 먼저 보기', '#대출규제 풍선 효과',
+#       '엠에이이아이엘 비유에스아이엔이에스에스 …'(영문 브랜드 한글 표기),
+#       '2026년 11월 28일 (토)', '1 [단독] 편의점 한다던 남편 …'(머리기사 목록),
+#       '세줄 요약', '부동산 많이 본 기사'
+#   원칙: 본문 문장은 건드리지 않는다 — 명백한 라벨/머리기사/브랜드 문구만 제거.
+# ─────────────────────────────────────────────────────────────
+LETTER_NAME = re.compile(
+    r"^(?:에이|이|엘|비|씨|디|에프|지|에이치|아이|제이|케이|엠|엔|오|피|큐|알|에스|티|유|브이|더블유|"
+    r"엑스|와이|제트|\s)+[.。]?$")
+# 두 단어 이상 붙은 브랜드·서비스 문구 — 일반 문장에 거의 나오지 않는 조합만 넣는다
+BRAND_NOISE = re.compile(
+    r"(무단\s*전재|재배포\s*금지|저작권자|먼저\s*보기|에서\s*\S{0,12}\s*팔로우|"
+    r"많이\s*본|인기\s*기사|추천\s*기사|관련\s*기사|주요\s*뉴스|헤드라인\s*뉴스|"
+    r"매경플러스|엘아이브이이|엠블록레터|콘텐츠\s*에이치유비|매의\s*부리처럼|"
+    r"쉽지만\s*얕지\s*않게|나만의\s*에이아이|월가에서\s*월급|실리콘밸리\s*현장|"
+    r"이미지\s*(확대|크게)|원본\s*보기|세줄\s*요약|핵심\s*요약|카드뉴스|포토뉴스|"
+    r"글자\s*크기|본문\s*듣기|기사\s*저장|스크랩하기|티오피\s*\d+)", re.I)
+# 짧은 홍보·구독 줄에만 적용 (본문 문장에 흔히 나오는 단어라 길이 제한)
+PROMO_SHORT = re.compile(r"(텔레그램|유튜브|뉴스레터|구독하기|구독\s*신청|팔로우|앱\s*설치|바로가기)")
+HASHTAG = re.compile(r"(^|\s)#[^\s#]{2,}")
+DATELINE = re.compile(r"^\d{4}년\s*\d{1,2}월\s*\d{1,2}일")
+NUMBERED = re.compile(r"^[1-9]\d?[.)]\s")
+SENT_END = re.compile(r"(다|요|까|죠|네|냐|자|니|오|라|세|군|음|임)[.!?\"'”’)\]」』]*$")
+
+
+def is_news_noise(seg, fragments=True):
+    """기사 본문이 아닌 조각인지 판정.
+
+    fragments=True  : 머리기사 조각·메뉴 라벨까지 제거 (사설·논설 수집용)
+    fragments=False : 명백한 브랜드·홍보 문구만 제거 (연설문 등 문단 보존)
+    """
+    t = seg.strip()
+    if not t:
+        return True
+    if BRAND_NOISE.search(t) or HASHTAG.search(t) or DATELINE.match(t) or LETTER_NAME.match(t):
+        return True
+    if re.fullmatch(r"[\s\d\W]*", t):
+        return True
+    n = nospace(t)
+    if n <= 20 and PROMO_SHORT.search(t):
+        return True
+    if fragments:
+        if NUMBERED.match(t) and n <= 110:
+            return True                                  # '2 3개월만에 …적립금.국내주식…'
+        if not SENT_END.search(t) and n <= 12:
+            return True                                  # 오피니언 / 라이프 / 티오피50
+        if not SENT_END.search(t) and n <= 45:
+            return True                                  # '3국 정보 활용 검토 논란도.'
+    return False
+
+
+def strip_news_noise(text, fragments=True):
+    """본문이 아닌 줄·문장을 걷어낸다. 140자 넘는 한 줄은 문장 단위로 쪼개서 판정."""
+    if not text:
+        return text
+    items = []          # (원래 줄 번호, 문장)
+    for li, ln in enumerate(str(text).split("\n")):
+        ln = ln.strip()
+        if not ln:
+            continue
+        if len(ln) <= 140:
+            items.append((li, ln))
+        else:
+            for part in re.split(r"(?<=[.!?])\s+", ln):
+                part = part.strip()
+                if part:
+                    items.append((li, part))
+    if not items:
+        return ""
+
+    out, seen = [], set()
+    for li, seg in items:
+        if is_news_noise(seg, fragments):
+            continue
+        key = re.sub(r"\s+", "", seg)[:60]
+        if key in seen:                                  # 같은 문장이 요약·본문에 중복될 때
+            continue
+        seen.add(key)
+        if out and out[-1][0] == li:
+            out[-1][1] += " " + seg
+        else:
+            out.append([li, seg])
+    return "\n".join(s for _, s in out).strip()
+
+
 def clean_text(raw, html_mode=False):
     text = raw
     if html_mode:
@@ -450,7 +540,7 @@ def clean_text(raw, html_mode=False):
         if re.fullmatch(r"[\s\d\W]*", ln):
             continue
         lines.append(ln)
-    return "\n".join(lines).strip()
+    return strip_news_noise("\n".join(lines).strip())
 
 
 def extract_text(url, base_domain):
