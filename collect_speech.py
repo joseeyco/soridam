@@ -70,7 +70,7 @@ def main():
         try: title, body=get_detail(url)
         except Exception as e:
             print("detail err:", e, file=sys.stderr); continue
-        fitted=ce.fit_length(body)
+        fitted=ce.fit_length(ce.strip_news_noise(body, fragments=False))
         n=ce.nospace(fitted)
         if n<700:
             print(f"짧음({n}자): {url}"); continue
