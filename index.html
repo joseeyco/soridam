@@ -1,4 +1,576 @@
-<!DOCTYPE html>
+본문으로 건너뛰기
+타자 연습 채점 결과 및 오답 연습 기능 수정 요청
+
+
+타자 연습 채점 결과 및 오답 연습 기능 수정 요청
+
+
+응답이 종료되었습니다.
+1.채점결과에서 연습타수 / 총글자수 / 정확도 / 실측 이 순서대로 보이도록 화면을 수정해줘.
+2. 채점결과 페이지에서 테스트 시작을 누르면 초기화 해서 처음부터 다시 테스트 할수있게 해주고, 이건 재테스트로 봐서 오답등 채점결과를 그대로 누적해서 관리해줘
+3.연습기록에서 연습시작 버튼을 누르면 취합된 오답문장 연습할수있게 구현해줘.
+4. %=퍼센트 둘다 정답처리해줘. 영어=한글표기 숫자=한글표기 모두 정답처리(ai=에이아이)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Copy
+
+
+
+
+
+Copy
+
+Copy
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Copy
+
+
+
+
+
+
+
+
+
+
+
+Copy
+
+
+
+Copy
+
+
+Copy
+
+
+
+
+
+Copy
+
+
+Copy
+
+Copy
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Copy
+
+
+Copy
+
+
+Copy
+
+
+
+Copy
+
+
+
+
+Copy
+
+
+
+
+
+
+Copy
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Copy
+
+Copy
+
+Copy
+
+
+Copy
+
+
+
+Copy
+
+
+Copy
+
+Copy
+
+
+Copy
+
+
+
+
+
+
+
+
+
+
+
+Copy
+
+
+
+
+
+
+
+
+
+
+CopyCopy
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Copy
+
+
+Copy
+
+Copy
+
+Copy
+
+Copy
+
+
+
+
+Copy
+
+
+
+Copy
+
+Copy
+
+
+
+Copy
+
+Copy
+
+
+Copy
+
+Copy
+
+Copy
+
+Copy
+
+Copy
+
+Copy
+
+Copy
+
+Copy
+
+Copy
+
+Copy
+
+
+
+
+
+
+Copy
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Copy
+
+
+
+
+
+
+
+
+Copy
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Copy
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+요청 4건 모두 반영해서 index.html 하나로 정리했습니다. (렌더링 화면까지 직접 캡처해서 확인했습니다)
+
+1. 채점 결과 — 표시 순서 변경
+결과 상단에 4칸 요약을 연습타수 → 총글자수 → 정확도 → 실측 순으로 새로 배치했습니다. (기존엔 제목줄에 정확도·실측만 붙어 있었음)
+
+항목	기준
+연습타수	실제 입력한 글자 수(공백 제외)
+총글자수	원문 글자 수(공백 제외)
+정확도	정자 ÷ (정자+오자+탈자+첨자)
+실측	연습타수 ÷ 걸린 시간 (자/분)
+렌더 확인 결과 연습타수 887타 / 총글자수 886자 / 정확도 99.6% / 실측 560자/분 순서로 표시됩니다.
+
+2. 채점 결과에서 '테스트 시작' = 재테스트
+결과 패널 안에 ▶ 테스트 시작 버튼을 추가했고, 위쪽 플레이어의 버튼도 결과가 떠 있는 상태면 같은 동작을 합니다.
+누르면 입력창·타이머·결과지가 초기화되고 카운트다운 후 처음부터 다시 시작합니다.
+다시 채점하면 연습 기록에 '재시험 N회차'로 별도 누적되고, 결과지에는 1차(전체지문) vs 재테스트 N회차 비교표가 함께 나옵니다. 오답 단어·취약 글자·단어장 집계도 그대로 누적됩니다.
+브라우저 렌더 검증: running:true, countdown:true, 입력창 비어 있음, 결과패널 숨김, 재테스트 1회차 상태 확인.
+3. 연습기록 '연습 시작' → 취합 오답문장 연습
+원인은 버튼이 목록 페이지로만 이동하고, 연습 패널이 상세 페이지 안에 있어서 화면에 아무것도 안 뜨던 것이었습니다. 이제 취합된 오답 문장이 연습 화면(상세 페이지) 에 오답 문장 연습으로 로드되고, ▶ 테스트 시작으로 실제 테스트와 동일하게 진행·채점됩니다. 이 연습 결과도 오답 연습 모드로 기록에 쌓이고, 기록 필터에도 오답 연습 칩을 추가했습니다. 기록 상세의 '틀린문장 연습하기'도 본문 전체가 아니라 해당 오답 문장만 대상으로 바뀌었습니다. (렌더 검증: pageDetail / dNo=오답 문장 연습 / target=취합 문장)
+
+4. 채점 정규화 확대
+% = 퍼센트 (기존 유지)
+영문 = 한글 이름: AI = 에이아이, UN = 유엔 등
+숫자 = 한글 읽기: 137 = 백삼십칠, 1,038 = 천삼십팔, 8.5% = 팔점오퍼센트, 0.4 = 영점사, 10000 = 만
+일십/일백/일천/일만 같은 생략형 표기도 인정
+단위 테스트 17건 전부 통과했고(원문 숫자 ↔ 한글 입력 상호 인정 포함), 채점 안내 문구도 새 기준으로 고쳤습니다.
+
+참고 1) 요청 범위 안에서 영문 매핑 오류 하나를 고쳤습니다 — Z가 지로 되어 있어 제트로 수정했습니다.
+참고 2) 숫자를 한글 읽기로 환산하므로 정자/오자 집계는 한글 음절 기준이 됩니다(예: 137 → 5글자). 실측도 입력한 실제 타자 수 기준으로 계산합니다.
+
+반영 방법
+첨부한 index.html을 GitHub joseeyco/soridam 저장소 루트의 index.html에 덮어쓰면 Pages에 반영됩니다. 저장소 푸시 권한이 이 세션에 없어 파일로 전달드립니다.
+
+1 file produced
+index
+.html
+HTML · 수정된 소리담다 index.html
+
+열기
+
+
+
+숫자 한글 환산 때문에 정자/오자 집계가 부풀 수 있으니, 집계는 원문 글자 기준으로 하고 정답 판정만 한글 읽기 허용으로 바꿔줘
+재테스트 결과지의 '1차(전체지문) vs 재테스트 N회차' 비교표를 직접 렌더 캡처해서 보여줘
+오답 연습 모드와 재테스트가 연습기록 통계(정확도·실측 평균)에 어떻게 합산되는지 정리해줘
+수정된 index.html을 GitHub에 바로 올릴 수 있게 커밋 메시지 포함한 반영 절차를 단계별로 정리해줘
+무료 할당량을 사용 중이며 크레딧이 소모되지 않습니다
+사용량 보기 ›
+
+
+
+
+
+
+index
+.html
+미리보기
+코드
+
+
+
+다운로드
+
+
+Copy<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -226,6 +798,14 @@ button.guarded:hover{filter:none}
 .cnum.cheom{color:var(--c-cheom)}
 .gstat.acc{background:var(--brand-soft);border-color:var(--brand-line)}
 .gstat.acc .v{color:var(--brand)}
+.gsum{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.gs{background:#fff;border:1px solid var(--line);border-radius:6px;padding:10px 12px}
+.gs .k{font-size:11px;color:var(--ink-soft);font-weight:700}
+.gs .v{font-family:var(--script);font-size:21px;font-weight:600;line-height:1.3}
+.gs .v small{font-family:var(--script);font-size:11px;font-weight:500;color:var(--ink-soft);margin-left:3px}
+.gs.acc{background:var(--brand-soft);border-color:var(--brand-line)}
+.gs.acc .v{color:var(--brand)}
+@media(max-width:620px){.gsum{grid-template-columns:repeat(2,1fr)}}
 .legend{display:flex;flex-wrap:wrap;gap:4px 18px;margin-top:8px;font-size:12px;color:var(--ink-soft);line-height:1.7;align-items:center}
 .legend>span{display:inline-flex;align-items:center;gap:5px}
 .legend .smp{font-family:var(--script);font-weight:700;font-size:14px;line-height:1;padding:0 1px;letter-spacing:.4px}
@@ -574,7 +1154,13 @@ select.inp{font-weight:500}
           </span>
         </div>
         <div class="grading" id="grading">
-          <h4>채점 결과 — 정확도 <b id="gAcc">0%</b> · 실측 <b id="gReal">—</b></h4>
+          <h4>채점 결과</h4>
+          <div class="gsum">
+            <div class="gs"><div class="k">연습타수</div><div class="v"><span id="gTyped">0</span><small>타</small></div></div>
+            <div class="gs"><div class="k">총글자수</div><div class="v"><span id="gTotal">0</span><small>자</small></div></div>
+            <div class="gs acc"><div class="k">정확도</div><div class="v"><span id="gAcc">0</span><small>%</small></div></div>
+            <div class="gs"><div class="k">실측</div><div class="v"><span id="gReal">—</span><small>자/분</small></div></div>
+          </div>
           <div class="gstats">
             <div class="gstat jeong"><div class="k">정자</div><div class="v" id="gJeong">0</div></div>
             <div class="gstat oja"><div class="k">오자</div><div class="v" id="gOja">0</div></div>
@@ -590,6 +1176,10 @@ select.inp{font-weight:500}
           <div class="diffbox" id="diffBox"></div>
           <span class="gnote" id="gNote"></span>
           <div class="compare" id="compareBox" style="display:none"></div>
+          <div class="btn-row" id="retestRow">
+            <button class="btn primary" onclick="startRetest()">▶ 테스트 시작</button>
+            <span class="gnote">초기화 후 처음부터 다시 테스트합니다 · 결과는 재시험으로 누적됩니다</span>
+          </div>
           <div class="accwrong" id="accWrongBox">
             <h4>누적 오답 단어 <span>많이 틀린 순 · 글자 크기=틀린 횟수 · ● 이번 테스트 / ○ 지난 테스트만</span></h4>
             <div class="aw-list" id="accWrongList"></div>
@@ -687,6 +1277,7 @@ select.inp{font-weight:500}
         <button class="chip on" data-hf="all" onclick="setHFilt('all',this)">전체</button>
         <button class="chip" data-hf="see" onclick="setHFilt('see',this)">보고치기</button>
         <button class="chip" data-hf="hear" onclick="setHFilt('hear',this)">듣고치기</button>
+        <button class="chip" data-hf="wrong" onclick="setHFilt('wrong',this)">오답 연습</button>
         <button class="chip" data-hf="tts" onclick="setHFilt('tts',this)">낭독 테스트</button>
         <span style="margin-left:auto"></span>
         <button class="chip mini" onclick="exportCsv()">CSV 내보내기</button>
@@ -951,6 +1542,8 @@ let curTab="see";
 function runningNow(){ return running || !!cdTimer || playing || !!hCdTimer; }
 /* 채점하기: 테스트를 한 번 시작한 뒤 일시정지·종료 상태에서만 노출 */
 let testStarted=false;
+/* 재테스트(같은 지문 다시 테스트) 상태 */
+let isRetest=false, retestRound=0, extraMode=false;
 function setGradeVisible(on){
   const b=document.getElementById("gradeBtn");
   if(b) b.classList.toggle("run-hidden", !on);
@@ -1223,7 +1816,33 @@ function stopRun(){
   setGuardUI(false);
   if(pendingProfileLv){ pendingProfileLv=false; applyProfileLv(); }
 }
-function toggleRun(){ if(running){ stopRun(); renderPrompt(); } else startRun(); }
+function toggleRun(){
+  if(running){ stopRun(); renderPrompt(); return; }
+  const g=document.getElementById("grading");
+  if(g && g.classList.contains("show")){ startRetest(); return; }
+  startRun();
+}
+/* 채점 결과에서 '테스트 시작' → 초기화 후 처음부터 재테스트 (결과는 누적으로 저장) */
+function startRetest(){
+  stopRun(); stopHear();
+  retestRound++;
+  isRetest=true; inRetry=false; drillMode=false;
+  accWrong={}; accRun=0;
+  const dr=document.getElementById("drillRow"); if(dr) dr.style.display="none";
+  const pn=document.getElementById("postNav"); if(pn) pn.style.display="";
+  revealed=0; elapsedBase=0; firstKeyAt=lastKeyAt=null;
+  const ty=document.getElementById("typer"); if(ty) ty.value="";
+  document.getElementById("grading").classList.remove("show");
+  const awb=document.getElementById("accWrongBox"); if(awb) awb.classList.remove("show");
+  const cb=document.getElementById("compareBox"); if(cb){ cb.style.display="none"; cb.innerHTML=""; }
+  const rb=document.getElementById("retryBox"); if(rb) rb.style.display="none";
+  const ra=document.getElementById("retryArea"); if(ra) ra.style.display="none";
+  showTestUI(true);
+  testStarted=false; setGradeVisible(false);
+  resetTimes(); renderPrompt(); updateStats(); updateNotes();
+  startRun();
+  showToast("재테스트 "+retestRound+"회차 — 처음부터 다시 시작합니다");
+}
 function rewindRun(){
   /* 새로고침: 진행 중이면 확인 후 초기화 */
   if(runningNow() && !confirm("테스트가 진행중입니다. 초기화 하시겠습니까?")) return;
@@ -1330,45 +1949,90 @@ function switchTab(t){
   if(!see) stopRun(); else stopHear();
 }
 /* ── 일괄 채점: 정자·오자·탈자·첨자 (LCS 기반) ── */
-/* ── 채점용 정규화: 기호·문장부호 제외, 숫자·영문·한글 수사 → 한글 표기 환산 ── */
-function normMap(s){
-  const LM={A:"에이",B:"비",C:"씨",D:"디",E:"이",F:"에프",G:"지",H:"에이치",I:"아이",J:"제이",K:"케이",L:"엘",M:"엠",N:"엔",O:"오",P:"피",Q:"큐",R:"알",S:"에스",T:"티",U:"유",V:"브이",W:"더블유",X:"엑스",Y:"와이",Z:"지"};
-  const DH=["영","일","이","삼","사","오","육","칠","팔","구"];
-  const chars=[], sp=[], oi=[];
-  let last=-1, pos=0;
-  for(const ch of s){
-    const o=pos++;
-    if(/\s/.test(ch)){ if(last>=0) sp[last]=true; continue; }
-    /* 기호: 퍼센트(%)는 '퍼센트'와 동일한 답으로 인정한다 */
-    if(ch==="%" || ch==="％"){
-      for(const c of "퍼센트"){ chars.push(c); sp.push(false); oi.push(o); }
-      last=chars.length-1; continue;
-    }
-    if(!/[가-힣ㄱ-ㅎ0-9a-zA-Z]/.test(ch)) continue;
-    let conv;
-    if(/[a-zA-Z]/.test(ch)) conv=LM[ch.toUpperCase()]||"";
-    else conv=ch;   /* 숫자는 한글로 바꾸지 않고 그대로 둔다 */
-    if(!conv) continue;
-    for(const c of conv){ chars.push(c); sp.push(false); oi.push(o); }
-    last=chars.length-1;
+/* ── 채점용 정규화: 기호·문장부호 제외, %·영문·숫자 → 한글 표기 환산 ── */
+const NORM_DIG=["","일","이","삼","사","오","육","칠","팔","구"];
+const NORM_UNIT=["","만","억","조","경"];
+function _numPart4(str){
+  const a=str.padStart(4,"0").split("").map(Number);
+  let o="";
+  if(a[0]) o += (a[0]>1?NORM_DIG[a[0]]:"")+"천";
+  if(a[1]) o += (a[1]>1?NORM_DIG[a[1]]:"")+"백";
+  if(a[2]) o += (a[2]>1?NORM_DIG[a[2]]:"")+"십";
+  if(a[3]) o += NORM_DIG[a[3]];
+  return o;
+}
+function _numSino(str){
+  const raw=String(str).replace(/,/g,"").replace(/^0+(?=\d)/,"");
+  if(!raw) return "";
+  if(raw==="0") return "영";
+  if(raw.length>20) return raw.split("").map(d=>NORM_DIG[+d]).join("");
+  const groups=[]; let t=raw;
+  while(t.length){ groups.push(t.slice(-4)); t=t.slice(0,-4); }
+  let out="";
+  for(let g=groups.length-1;g>=0;g--){
+    const part=_numPart4(groups[g]);
+    if(part) out += part + (NORM_UNIT[g]||"");
   }
-  const NAT=[["스물","이십"],["스무","이십"],["서른","삼십"],["마흔","사십"],["쉰","오십"],["예순","육십"],["일흔","칠십"],["여든","팔십"],["아흔","구십"],["하나","일"],["다섯","오"],["여섯","육"],["일곱","칠"],["여덟","팔"],["아홉","구"],["셋","삼"]];
-  for(const [a,b] of NAT){
+  return out;
+}
+/* 137 → 백삼십칠 · 1,038 → 천삼십팔 · 8.5 → 팔점오 */
+function _numKorean(raw){
+  const t=String(raw).replace(/,/g,"");
+  if(!t) return "";
+  const seg=t.split(".");
+  let out=_numSino(seg[0]||"0");
+  for(let k=1;k<seg.length;k++){
+    if(!seg[k]) continue;
+    out += "점" + seg[k].split("").map(d=>NORM_DIG[+d]).join("");
+  }
+  return out;
+}
+function normMap(s){
+  const LM={A:"에이",B:"비",C:"씨",D:"디",E:"이",F:"에프",G:"지",H:"에이치",I:"아이",J:"제이",K:"케이",L:"엘",M:"엠",N:"엔",O:"오",P:"피",Q:"큐",R:"알",S:"에스",T:"티",U:"유",V:"브이",W:"더블유",X:"엑스",Y:"와이",Z:"제트"};
+  const chars=[], sp=[], oi=[];
+  let last=-1;
+  const push=(str,o)=>{ for(const c of str){ chars.push(c); sp.push(false); oi.push(o); } if(str.length) last=chars.length-1; };
+  let i=0;
+  while(i<s.length){
+    const ch=s[i];
+    if(/\s/.test(ch)){ if(last>=0) sp[last]=true; i++; continue; }
+    /* 퍼센트 기호는 '퍼센트'와 동일한 답으로 인정 */
+    if(ch==="%"||ch==="％"){ push("퍼센트",i); i++; continue; }
+    /* 숫자 덩어리 → 한글 읽기 (123 · 1,038 · 8.5) */
+    if(/[0-9]/.test(ch)){
+      let j=i, buf="";
+      while(j<s.length){
+        const c2=s[j];
+        if(/[0-9]/.test(c2)){ buf+=c2; j++; continue; }
+        if((c2===","||c2===".") && /[0-9]/.test(s[j+1]||"")){ buf+=c2; j++; continue; }
+        break;
+      }
+      const conv=_numKorean(buf);
+      if(conv) push(conv,i);
+      i=j; continue;
+    }
+    /* 영문은 한글 이름으로 (AI=에이아이) */
+    if(/[a-zA-Z]/.test(ch)){ const conv=LM[ch.toUpperCase()]||""; if(conv) push(conv,i); i++; continue; }
+    if(/[가-힣ㄱ-ㅎ]/.test(ch)){ push(ch,i); i++; continue; }
+    i++;   /* 기호·문장부호는 제외 */
+  }
+  /* 한글 수사 표기 통일 · '일십/일백/일천/일만' 생략형 인정 */
+  const REP=[["스물","이십"],["스무","이십"],["서른","삼십"],["마흔","사십"],["쉰","오십"],["예순","육십"],["일흔","칠십"],["여든","팔십"],["아흔","구십"],["하나","일"],["다섯","오"],["여섯","육"],["일곱","칠"],["여덟","팔"],["아홉","구"],["셋","삼"],["일십","십"],["일백","백"],["일천","천"],["일만","만"],["일억","억"]];
+  const applyRep=(a,b)=>{
     let k=0;
     while(k<=chars.length-a.length){
       let hit=true;
-      for(let q2=0;q2<a.length;q2++) if(chars[k+q2]!==a[q2]){hit=false;break;}
+      for(let q=0;q<a.length;q++) if(chars[k+q]!==a[q]){ hit=false; break; }
       if(hit){
-        const sf=sp[k+a.length-1];
-        const o0=oi[k];
-        const add=b.split("");
+        const sf=sp[k+a.length-1], o0=oi[k], add=b.split("");
         chars.splice(k,a.length,...add);
         sp.splice(k,a.length,...add.map(()=>sf));
         oi.splice(k,a.length,...add.map(()=>o0));
         k+=add.length;
       } else k++;
     }
-  }
+  };
+  REP.forEach(([a,b])=>applyRep(a,b));
   return {t:chars.join(""), sp, oi};
 }
 function norm4score(s){ return normMap(s).t; }
@@ -1439,7 +2103,11 @@ function _gradeAllInner(){
   stopRun(); stopHear();
   const R = diffMarks(target, rawTyped);
   const marks = R.marks, mT = R.mT;
-  document.getElementById("gAcc").textContent = pct1(R.accP)+"%";
+  const typedChars = rawTyped.replace(/\s/g,"").length;   /* 연습타수 — 실제 입력한 글자 수(공백 제외) */
+  const targetChars = target.replace(/\s/g,"").length;   /* 총글자수 — 원문 글자 수(공백 제외) */
+  document.getElementById("gTyped").textContent = typedChars;
+  document.getElementById("gTotal").textContent = targetChars;
+  document.getElementById("gAcc").textContent = pct1(R.accP);
   document.getElementById("gJeong").textContent = R.jeong;
   document.getElementById("gOja").textContent = R.oja;
   document.getElementById("gTal").textContent = R.tal;
@@ -1449,16 +2117,16 @@ function _gradeAllInner(){
   accAddWrong(R.marks);
   const sec = Math.round(elapsedBase + (startAt ? (Date.now()-startAt)/1000 : 0));
   const tsec = (firstKeyAt && lastKeyAt) ? (lastKeyAt - firstKeyAt)/1000 : sec;
-  const realCpm = tsec >= 3 ? Math.round(R.m / (tsec/60)) : cpm;
+  const realCpm = tsec >= 3 ? Math.round(typedChars / (tsec/60)) : cpm;
   const gReal=document.getElementById("gReal");
-  if(gReal) gReal.textContent = realCpm+"자/분";
-  if(!inRetry){
+  if(gReal) gReal.textContent = realCpm;
+  if(!inRetry && !isRetest){
     firstResult={acc:R.accP, jeong:R.jeong, oja:R.oja, tal:R.tal, cheom:R.cheom, real:realCpm, html:marksToHtml(R.marks)};
     const cb=document.getElementById("compareBox");
     if(cb){ cb.style.display="none"; cb.innerHTML=""; }
   }
   document.getElementById("gNote").textContent =
-    `원문 ${R.n}자 · 입력 ${R.m}자 · 실측 ${realCpm}자/분 · 정확도 = 정자 ÷ (정자+오자+탈자+첨자) × 100 · 기호·문장부호는 제외하고 계산하며(%는 '퍼센트'로 인정), 숫자는 입력한 그대로 숫자로 비교합니다(예: 5≠오). 띄어쓰기는 원문 기준으로 표시합니다.`;
+    `연습타수 ${typedChars}타 · 총글자수 ${targetChars}자 · 실측 ${realCpm}자/분(연습타수÷걸린 시간) · 정확도 = 정자 ÷ (정자+오자+탈자+첨자) × 100 · 기호·문장부호는 제외하며, %는 '퍼센트', 영문은 한글 이름(AI=에이아이), 숫자는 한글 읽기(137=백삼십칠)로 바꿔 비교합니다. 띄어쓰기는 원문 기준으로 표시합니다.`;
   document.getElementById("grading").classList.add("show");
   showTestUI(false);   /* 채점 후 스크립트·테스트창 감춤 → 결과만 노출 */
   document.getElementById("grading").scrollIntoView({behavior:"smooth", block:"nearest"});
@@ -1497,12 +2165,12 @@ function _gradeAllInner(){
       rb.style.display = "flex";
     } else rb.style.display = "none";
   }
-  if(!drillMode && inRetry && typeof firstResult!=="undefined" && firstResult){
+  if(!drillMode && (inRetry || isRetest) && typeof firstResult!=="undefined" && firstResult){
     const cb=document.getElementById("compareBox");
     if(cb){
       cb.style.display="block";
       cb.innerHTML = `<h4>1차 결과지와 비교</h4>`
-        + `<table class="cmp-t"><tr><th></th><th>1차 (전체지문)</th><th>재테스트 (틀린문장)</th></tr>`
+        + `<table class="cmp-t"><tr><th></th><th>1차 (전체지문)</th><th>${isRetest ? "재테스트 "+retestRound+"회차" : "재테스트 (틀린문장)"}</th></tr>`
         + `<tr><th>정확도</th><td>${pct1(firstResult.acc)}%</td><td>${pct1(R.accP)}%</td></tr>`
         + `<tr><th>정·오·탈·첨</th><td>${cnumSpan(firstResult.jeong,"jeong")}·${cnumSpan(firstResult.oja,"oja")}·${cnumSpan(firstResult.tal,"tal")}·${cnumSpan(firstResult.cheom,"cheom")}</td><td>${cnumSpan(R.jeong,"jeong")}·${cnumSpan(R.oja,"oja")}·${cnumSpan(R.tal,"tal")}·${cnumSpan(R.cheom,"cheom")}</td></tr>`
         + `<tr><th>실측</th><td>${firstResult.real}자/분</td><td>${realCpm}자/분</td></tr></table>`
@@ -1511,16 +2179,21 @@ function _gradeAllInner(){
     }
   }
   /* ── 결과 누적: 연습 기록 · 취약 글자 · 단어장 자동 집계 ── */
-  if(!inRetry && typeof saveSession === "function"){
+  if((!inRetry || isRetest) && typeof saveSession === "function"){
     const ed = editorials[cur];
     const st0=sentStarts(target), sErr=st0.map(()=>0);
     marks.forEach(mk=>{ if((mk.t==="oja"||mk.t==="tal") && mk.ti!=null && mk.ti>=0){ let si=0; for(let q=0;q<st0.length;q++){ if(st0[q]<=mk.ti) si=q; else break; } sErr[si]++; } });
     const sentList=splitSents(target).map((ss,i2)=>({s:ss.trim(), n:sErr[i2]||0})).filter(x=>x.n>0&&x.s).sort((a,b)=>b.n-a.n).slice(0,15);
     const wcArr=Object.entries(accWrong).sort((a,b)=>b[1].n-a[1].n).slice(0,10).map(([c,e])=>[c,e.n]);
     saveSession({
-      no:ed.no, title:ed.title, src:ed.src, lv:ed.lv, mode:curTab,
+      no:ed.no,
+      title: extraMode ? "오답 문장 연습" : ed.title,
+      src: extraMode ? "오답 취합" : ed.src,
+      lv:ed.lv,
+      mode: extraMode ? "wrong" : curTab,
+      retest: !!isRetest, round: isRetest ? retestRound : 0,
       acc:R.accP, jeong:R.jeong, oja:R.oja, tal:R.tal, cheom:R.cheom,
-      typed:R.m, tlen:R.n, sec:sec, cpm:realCpm,
+      typed:typedChars, tlen:targetChars, sec:sec, cpm:realCpm,
       body:target, wrong:sentList, wrongChars:wcArr
     });
   }
@@ -1535,7 +2208,7 @@ function startRetryFull(){
   drillMode=false;
   const dr=document.getElementById("drillRow"); if(dr) dr.style.display="none";
   const pn1=document.getElementById("postNav"); if(pn1) pn1.style.display="";
-  inRetry=true; testStarted=false;
+  inRetry=true; isRetest=false; testStarted=false;
   stopRun(); stopHear(); setGradeVisible(false);
   target = wrongSents.join(" ");
   revealed = 0; elapsedBase = 0; firstKeyAt = lastKeyAt = null;
@@ -1783,7 +2456,7 @@ function resetAll(){
   /* 수집 규격: 괄호안 생략 + 700~1,000자(공백 제외)로 축소 */
   target = fitBody(editorials[cur].body || editorials[0].body);
   revealed = 0; elapsedBase = 0; firstKeyAt = lastKeyAt = null;
-  inRetry = false; firstResult = null;
+  inRetry = false; firstResult = null; isRetest = false; retestRound = 0; extraMode = false;
   accWrong={};
   const awb=document.getElementById("accWrongBox"); if(awb) awb.classList.remove("show");
   document.getElementById("typer").value = "";
@@ -1835,7 +2508,7 @@ if(typeof renderRail === "function") renderRail();
 const SKEY = "sodam.v1";
 const SESS_MAX = 300;
 const CHO = ["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ","ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
-const MODE_LABEL = {see:"보고치기", hear:"듣고치기", tts:"낭독 테스트"};
+const MODE_LABEL = {see:"보고치기", hear:"듣고치기", tts:"낭독 테스트", wrong:"오답 연습"};
 /* ── 저장소(localStorage) ─────────────────── */
 function sAll(){ try{ return JSON.parse(localStorage.getItem(SKEY)||"{}") || {}; }catch(e){ return {}; } }
 function sGet(k, def){ const a=sAll(); return (k in a) ? a[k] : def; }
@@ -2122,6 +2795,7 @@ function setHFilt(f, el){
 function renderHistory(){
   const body = document.getElementById("hBody");
   if(!body) return;
+  try{ renderAggPreview(); }catch(e){}
   const all = getSessions();
   const cnt = document.getElementById("hCount"); if(cnt) cnt.textContent = all.length;
   const list = all.filter(s=> hFilter==="all" || s.mode===hFilter);
@@ -2141,7 +2815,7 @@ function renderHistory(){
     <tr style="cursor:pointer" onclick="openSessDetail('${s.id}')" title="클릭하면 이 기록의 오답 상세를 봅니다">
       <td class="date">${dtTime(s.ts)}</td>
       <td class="title">${esc(s.title||"")}</td>
-      <td style="text-align:center"><span class="badge">${MODE_LABEL[s.mode]||s.mode||"-"}</span></td>
+      <td style="text-align:center"><span class="badge">${MODE_LABEL[s.mode]||s.mode||"-"}</span>${s.retest?`<div style="font-size:10.5px;color:var(--ink-soft);margin-top:3px">재시험 ${s.round||1}회차</div>`:""}</td>
       <td style="text-align:center;font-family:var(--num);font-weight:700;color:${s.acc>=90?"var(--ok)":s.acc>=70?"var(--brand)":"var(--rose)"}">${pct1(s.acc)}%</td>
       <td style="text-align:center;font-family:var(--num);font-size:12.5px;color:var(--ink-soft)">${s.jeong||0} / ${s.oja||0} / ${s.tal||0} / ${s.cheom||0}</td>
       <td style="text-align:center;font-family:var(--num);font-size:12.5px">${s.cpm||"-"}<small style="color:var(--ink-soft)"> 자/분</small></td>
@@ -2175,7 +2849,7 @@ function practiceSessionWrong(id){
   if(!rec||!rec.body){ showToast("본문이 저장되지 않은 기록이라 다시 연습할 수 없습니다"); return; }
   const list=rec.wrong||[]; const sents=list.map(x=>typeof x==="string"?x:x.s);
   if(!sents.length){ showToast("틀린 문장 기록이 없습니다"); return; }
-  beginExtraPractice(rec.body, sents, "선택한 기록의 틀린 문장 "+sents.length+"개를 연습합니다");
+  beginExtraPractice(sents.join(" "), sents, "선택한 기록의 틀린 문장 "+sents.length+"개를 연습합니다");
 }
 function aggWrongSentences(){
   const cnt={};
@@ -2196,20 +2870,29 @@ function startAggPractice(){
   beginExtraPractice(sents.join(" "), sents, "오답 문장 "+sents.length+"개를 연습합니다");
 }
 function beginExtraPractice(body, sents, msg){
-  goPage("pageList");
-  wrongSents=sents; retryMode="all"; retryIdx=0; inRetry=true; firstResult=null;
-  stopRun(); stopHear();
+  /* 연습 기록에서 취합한 오답 문장을 실제 테스트와 같은 화면으로 연습 */
+  closeDrawers();
+  document.querySelectorAll("main.content .page").forEach(p=>p.classList.toggle("show", p.id==="pageDetail"));
+  if(typeof setSideActive==="function") setSideActive("pageList");
+  wrongSents=sents.slice(); retryMode="all"; retryIdx=0;
+  inRetry=false; isRetest=false; retestRound=0; extraMode=true; drillMode=false;
+  firstResult=null;
+  stopRun(); stopHear(); testStarted=false; setGradeVisible(false);
   target=body; revealed=0; elapsedBase=0; firstKeyAt=lastKeyAt=null;
   document.getElementById("typer").value="";
   document.getElementById("grading").classList.remove("show");
   const awb=document.getElementById("accWrongBox"); if(awb) awb.classList.remove("show");
   const cb=document.getElementById("compareBox"); if(cb){ cb.style.display="none"; cb.innerHTML=""; }
-  const rb=document.getElementById("retryBox"); rb.style.display="flex";
-  testStarted=false; setGradeVisible(false);
-  document.getElementById("retryArea").style.display="flex";
-  if(typeof buildRetryCpm==="function") buildRetryCpm();
-  loadRetry();
-  showToast(msg);
+  const rb=document.getElementById("retryBox"); if(rb) rb.style.display="none";
+  const ra=document.getElementById("retryArea"); if(ra) ra.style.display="none";
+  const dr=document.getElementById("drillRow"); if(dr) dr.style.display="none";
+  const pn=document.getElementById("postNav"); if(pn) pn.style.display="";
+  const dn=document.getElementById("dNo"); if(dn) dn.textContent="오답 문장 연습";
+  showTestUI(true);
+  resetTimes(); renderPrompt(); updateStats(); updateNotes();
+  window.scrollTo(0,0);
+  showToast(msg+" — ▶ 테스트 시작을 누르세요");
+  const ty=document.getElementById("typer"); if(ty){ try{ ty.focus({preventScroll:true}); }catch(e){} }
 }
 function weakWordToVocab(el){
   const w=el.getAttribute("data-w"); if(!w) return;
